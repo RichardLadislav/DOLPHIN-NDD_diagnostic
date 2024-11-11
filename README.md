@@ -26,7 +26,7 @@ Download the three subsets: CASIA-OLHWDB2, DCOH-E, and SCUT-COUCH2009 using the 
 - [Baidu Cloud](https://pan.baidu.com/s/1Op917v5IM7OushQ_xPNLSg?pwd=oler)
 - [Google Drive](https://drive.google.com/drive/folders/1W-R78wLSJXDhK998c_zIAEFxtPE10AX4?usp=sharing)
 
-Create a local directory named `data-raw` Unzip the .zip archives using the following commands:
+Unzip the .zip archives using the following commands:
 
 ```bash
 unzip OLHWDB2.zip -d .
