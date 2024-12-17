@@ -7,7 +7,11 @@
   <img alt="Static Badge" src="https://img.shields.io/badge/Pytorch%201.12-orange?logo=pytorch&logoColor=rgb">
   <img alt="Static Badge" src="https://img.shields.io/badge/Python%203.8-lightgray?logo=python&logoColor=rgb">
 
-Official code of the DOLPHIN model ([IEEE TIFS 2024] [Online Writer Retrieval with Chinese Handwritten Phrases: A Synergistic Temporal-Frequency Representation Learning Approach](https://arxiv.org/abs/2412.11668)) and the release of the OLIWER dataset.
+<a href="https://arxiv.org/abs/2412.11668"> <b>:star:Online Writer Retrieval with Chinese Handwritten Phrases: A Synergistic Temporal-Frequency Representation Learning Approach</b> </a>
+
+<b>IEEE Transactions of Information Forensics and Security (TIFS), 2024</b>
+
+Official code of the DOLPHIN model and the release of the OLIWER dataset.
 </div>
 
 ## <div align="center">:ocean:Introduction</div>
