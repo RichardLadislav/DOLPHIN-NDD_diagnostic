@@ -1,4 +1,4 @@
-# <div align="center">:dolphin:DOLPHIN</div>
+# <div align="center">:dolphin:DOLPHIN
 
 <div align="center">
   <a href="http://dlvc-lab.net/lianwen/"> <img alt="SCUT DLVC Lab" src="https://img.shields.io/badge/SCUT-DLVC_Lab-A85882?logo=Academia&logoColor=hsl"></a>
@@ -6,12 +6,18 @@
   <a href="https://arxiv.org/abs/2412.11668"> <img alt="Static Badge" src="https://img.shields.io/badge/arXiv-2412.11668-gray?logo=arXiv&logoColor=rgb&labelColor=%23CE0000"></a>
   <img alt="Static Badge" src="https://img.shields.io/badge/Pytorch%201.12-orange?logo=pytorch&logoColor=rgb">
   <img alt="Static Badge" src="https://img.shields.io/badge/Python%203.8-lightgray?logo=python&logoColor=rgb">
-
-
 Official code of the DOLPHIN model (IEEE TIFS 2024 [[paper](https://arxiv.org/abs/2412.11668)]) and the release of the OLIWER dataset.
 </div>
 
-## :earth_asia:Environment
+## <div align="center">:ocean:Introduction</div>
+
+DOLPHIN is an online writer retrieval model, designed to retrieve all online handwriting samples of a specific writer. It synergizes temporal and frequency learning to extract discriminative feature representations for online handwriting.
+
+![DOLPHIN’s architecture.](asset/arch.png)
+
+<div align="center"><i>The model architecture of DOLPIHN</i></div>
+
+## <div align="center">:earth_asia:Environment</div>
 
 ```bash
 git clone https://github.com/SCUT-DLVCLab/DOLPHIN.git
@@ -20,7 +26,7 @@ conda activate dolphin
 pip install -r requirements.txt
 ```
 
-## :hammer_and_pick:Data Preparation
+## <div align="center">:hammer_and_pick:Data Preparation</div>
 
 Download the three subsets: CASIA-OLHWDB2, DCOH-E, and SCUT-COUCH2009 using the following links:
 
@@ -85,13 +91,13 @@ data
     └── train-tf.pkl
 ```
 
-## :rocket:Test
+## <div align="center">:rocket:Test</div>
 
 ```
 python test.py --weights weights/model.pth
 ```
 
-## :bookmark_tabs:Citation
+## <div align="center">:bookmark_tabs:Citation</div>
 
 ```
 @ARTICLE{10746457,
@@ -104,11 +110,11 @@ python test.py --weights weights/model.pth
   pages={10387-10399},
 ```
 
-## :phone:Cotact
+## <div align="center">:phone:Cotact</div>
 
 Peirong Zhang: eeprzhang@mail.scut.edu.cn
 
-## :palm_tree:Copyright
+## <div align="center">:palm_tree:Copyright</div>
 
 Copyright 2024, Deep Learning and Vision Computing (DLVC) Lab, South China China University of Technology. [http://www.dlvc-lab.net](http://www.dlvc-lab.net/).
 
