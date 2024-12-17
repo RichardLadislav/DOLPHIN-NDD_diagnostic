@@ -19,7 +19,7 @@
 
 DOLPHIN is an online writer retrieval model, designed to retrieve all online handwriting samples of a specific writer. It synergizes temporal and frequency learning to extract discriminative feature representations for online handwriting.
 
-![DOLPHIN’s architecture.](asset/arch.png)
+![DOLPHIN’s architecture](asset/arch.png)
 
 <div align="center"><i>The model architecture of DOLPIHN</i></div>
 
