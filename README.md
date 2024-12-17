@@ -6,7 +6,8 @@
   <a href="https://arxiv.org/abs/2412.11668"> <img alt="Static Badge" src="https://img.shields.io/badge/arXiv-2412.11668-gray?logo=arXiv&logoColor=rgb&labelColor=%23CE0000"></a>
   <img alt="Static Badge" src="https://img.shields.io/badge/Pytorch%201.12-orange?logo=pytorch&logoColor=rgb">
   <img alt="Static Badge" src="https://img.shields.io/badge/Python%203.8-lightgray?logo=python&logoColor=rgb">
-
+<p></p>
+  
 <a href="https://arxiv.org/abs/2412.11668"> <b>Online Writer Retrieval with Chinese Handwritten Phrases: A Synergistic Temporal-Frequency Representation Learning Approach</b> </a>
 
 <b>IEEE Transactions of Information Forensics and Security (TIFS), 2024</b>
