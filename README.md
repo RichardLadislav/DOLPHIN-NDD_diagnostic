@@ -113,7 +113,8 @@ python test.py --weights weights/model.pth
   year={2024},
   volume={19},
   number={},
-  pages={10387-10399},
+  pages={10387-10399}
+}
 ```
 
 ## <div align="center">:phone:Cotact</div>
