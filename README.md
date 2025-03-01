@@ -26,6 +26,7 @@ DOLPHIN is an online writer retrieval model, designed to retrieve all online han
 
 ```bash
 git clone https://github.com/SCUT-DLVCLab/DOLPHIN.git
+cd DOLPHIN
 conda create -n dolphin python=3.8.16
 conda activate dolphin
 pip install -r requirements.txt
