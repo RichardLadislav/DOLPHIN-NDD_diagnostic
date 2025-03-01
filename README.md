@@ -105,7 +105,7 @@ python test.py --weights weights/model.pth
 
 ## <div align="center">:bookmark_tabs:Citation</div>
 
-```
+```bibtex
 @ARTICLE{10746457,
   author={Zhang, Peirong and Jin, Lianwen},
   journal={IEEE Transactions on Information Forensics and Security}, 
