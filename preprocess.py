@@ -59,7 +59,7 @@ def preprocess_COUCH(src_root='./data-raw/COUCH09',interp=4):
                 lines = f.readlines()
                 lines = lines[1:]
                 lines = [l.strip() for l in lines]
-            info = [list(map(lambda x:float(x),l.split())) for l in lines]
+            info = [list(map(lambda x:float(x),l.split()[:3])) for l in lines]
             info = np.array(info,np.float32)
             info = centernorm_size(info)
             if interp != None:
