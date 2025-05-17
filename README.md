@@ -123,5 +123,5 @@ Peirong Zhang: eeprzhang@mail.scut.edu.cn
 
 ## <div align="center">:palm_tree:Copyright</div>
 
-Copyright 2025, Deep Learning and Vision Computing (DLVC) Lab, South China China University of Technology. [http://www.dlvc-lab.net](http://www.dlvc-lab.net/).
+Copyright 2024-2025, Deep Learning and Vision Computing (DLVC) Lab, South China China University of Technology. [http://www.dlvc-lab.net](http://www.dlvc-lab.net/).
 
