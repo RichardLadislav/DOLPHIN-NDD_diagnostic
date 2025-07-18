@@ -106,9 +106,9 @@ python test.py --weights weights/model.pth
 ## <div align="center">:bookmark_tabs:Citation</div>
 
 ```bibtex
-@ARTICLE{10746457,
+@ARTICLE{dolphin2024zhang,
   author={Zhang, Peirong and Jin, Lianwen},
-  journal={IEEE Transactions on Information Forensics and Security}, 
+  journal={IEEE Transactions on Information Forensics and Security (TIFS)}, 
   title={{Online Writer Retrieval With Chinese Handwritten Phrases: A Synergistic Temporal-Frequency Representation Learning Approach}}, 
   year={2024},
   volume={19},
