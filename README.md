@@ -4,7 +4,8 @@
   <a href="http://dlvc-lab.net/lianwen/"> <img alt="SCUT DLVC Lab" src="https://img.shields.io/badge/SCUT-DLVC_Lab-B32952?logo=Academia&logoColor=hsl"></a>
   <a href="https://ieeexplore.ieee.org/document/10746457"> <img alt="Static Badge" src="https://img.shields.io/badge/IEEE_TIFS-DOLPHIN-%23327FE6?logo=IEEE&logoColor=rgb&labelColor=58B822"></a>
   <a href="https://arxiv.org/abs/2412.11668"> <img alt="Static Badge" src="https://img.shields.io/badge/arXiv-2412.11668-%23CE0000?logo=arXiv&logoColor=rgb&labelColor=gray"></a>
-  <a href="./LICENSE"> <img alt="Static Badge" src="https://img.shields.io/badge/License-GPLv3-FFBF00?logo=GNUBash&logoColor=rgb&labelColor=006622"></a>
+  <a href="https://huggingface.co/papers/2412.11668"> <img alt="Static Badge" src="https://img.shields.io/badge/HuggingFace-Paper-FFBF00?logo=HuggingFace&logoColor=rgb&labelColor=gray"></a>
+  <a href="./LICENSE"> <img alt="Static Badge" src="https://img.shields.io/badge/License-GPLv3-98009A?logo=GNUBash&logoColor=rgb&labelColor=006622"></a>
 <p></p>
   
 <a href="https://arxiv.org/abs/2412.11668"> <b>Online Writer Retrieval with Chinese Handwritten Phrases: A Synergistic Temporal-Frequency Representation Learning Approach</b> </a>
