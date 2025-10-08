@@ -15,6 +15,8 @@ import matplotlib.pyplot as plt
 from ptflops import get_model_complexity_info
 from thop import profile
 from torchstat import stat
+# imported to load joblib files
+from joblib import load
 
 torch._C._jit_set_profiling_mode(False)
 torch._C._jit_set_profiling_executor(False)
@@ -57,8 +59,9 @@ logger = create_logger(opt.log_root,name=opt.name,test=True)
 #     query_data = pickle.load(f,encoding='iso-8859-1')
 gallery_root = f'{opt.folder}/test-tf.pkl'
 # Error warining
-with open(gallery_root,'rb') as f:
-    gallery_data = pickle.load(f,encoding='iso-8859-1')
+#with open(gallery_root,'rb') as f:
+#   gallery_data = pickle.load(f,encoding='iso-8859-1')
+gallery_data = load(gallery_root)
 # handwriting_info = {}
 # min_sample = 10000
 # for k in query_data:
