@@ -13,52 +13,56 @@ import matplotlib.pyplot as plt
 from PIL import Image
 
 class ButterWorthLPF: 
-    # 巴特沃斯低通滤波器
+    # ButterWorth filter
     def __init__(self,order=3,half_pnt=15.0,fnyquist=100.0):
         '''
             scipy.signal.butter(N, Wn, btype='low', analog=False, output='ba', fs=None)
-            这个是滤波器，高通低通带通
-            N是滤波器阶数，Wn是3dB带宽点，dB就是radians/frequency(弧度/频率)
-            3dB就是功率下降到二分之一的点，所以这里叫做half_pnt(point)
-            byte决定是什么通，analog=False表示模拟滤波器，True表示数字滤波器
-            'ba'表示输出分子和分母的系数;'zpk'表示输出零极点;'sos'表示输出second-order sections.
-            默认是'ba'，意思应该是系统响应函数分子上的系数bk和分母上的系数ak
+            This is a filter function, supporting high-pass, low-pass, and band-pass filters.
+            N is the filter order, Wn is the 3dB cutoff point (in radians/frequency).
+            3dB refers to the point where the power drops to half, hence called half_pnt (half point).
+            btype determines the filter type, analog=False means digital filter, True means analog filter.
+            'ba' means the output is the numerator and denominator coefficients; 'zpk' means output zeros, poles, and gain; 'sos' means output second-order sections.
+            The default is 'ba', which means the system response function's numerator coefficients (bk) and denominator coefficients (ak).
             https://wenku.baidu.com/view/adec241352d380eb62946d82.html
-            order: 滤波器阶数
-            half_pnt: 3dB点，功率降到一半的点
-            fnyquist: sampling frequency，奈奎斯特采样率，采样频率必须要大于原始频率的两倍，书上叫fs
+            order: filter order
+            half_pnt: 3dB point, where the power drops to half
+            fnyquist: sampling frequency, Nyquist frequency; the sampling frequency must be greater than twice the original frequency, called fs in textbooks
         '''
-        fM = 0.5 * fnyquist # fM是原始频率，命名参考信号与系统第2版第七章
+        fM = 0.5 * fnyquist # fM is the original frequency, naming reference: Signals and Systems, 2nd Edition, Chapter 7
         half_pnt /= fM
         b,a = signal.butter(order,half_pnt,'low')
-        self.b = b # 分子
-        self.a = a # 分母
+        self.b = b # numerator
+        self.a = a # denominator
 
-    def __call__(self,x): # x就是输入进来要滤波的数据
+    # x is the input data to be filtered
+    def __call__(self,x):
         return signal.filtfilt(self.b,self.a,x)
-        # 将data通过零相位滤波器，零相位的意思就是输入和输出信号的相位完全相同，相移为0
-        # 至于为什么是零相位滤波，暂时只能说经验值
+        # Pass data through a zero-phase filter; zero-phase means the input and output signals have exactly the same phase, i.e., zero phase shift
+        # As for why zero-phase filtering is used, it can only be said to be based on experience for now
 
 lpf = ButterWorthLPF()
 
-def difference(x): # 差分，两跨点之间相减
+def difference(x): # Difference, subtract between two adjacent points
     '''
-        numpy.convolve(a, v, mode='full')，a的长度是N，v是M
-        mode可以取'full','same','valid',full的意思是长度为N+M-1，same的意思是长度为max(M,N)，
-        valid的意思是长度为max(M,N) - min(M,N) + 1，只有完全重叠的点有效，
-        边缘点无效（边缘点就是有一个序列突出去的那些）
-        mode='same'的时候，比如[5,8,6,9,1,2]*[0.5,0,-0.5]，full的长度是8，然后两边减一个，
-        刚刚好就是6了，而且[0.5,0,-0.5]是会反转的，[4., 0.5, 0.5, -2.5, -3.5, -0.5]
+        numpy.convolve(a, v, mode='full'): a has length N, v has length M.
+        The mode can be 'full', 'same', or 'valid'. 'full' means the output length is N+M-1, 
+        'same' means the output length is max(M, N), and 'valid' means the output length is 
+        max(M, N) - min(M, N) + 1, where only the completely overlapping points are valid, 
+        and edge points are invalid (edge points are those where one sequence extends beyond the other).
+        When mode='same', for example [5,8,6,9,1,2]*[0.5,0,-0.5], the 'full' length is 8, 
+        then subtract one from each end, resulting in 6, and [0.5,0,-0.5] will be reversed, 
+        giving [4., 0.5, 0.5, -2.5, -3.5, -0.5].
         delta_x[0] = delta_x[1]
         delta_x[-1] = delta_x[-2]
-        这两句的作用就是将4代替为0.5，-0.5代替为-3.5，是因为那两个点没人减
+        The purpose of these two lines is to replace 4 with 0.5 and -0.5 with -3.5, 
+        because those two points have nothing to subtract from.
     '''
     delta_x = np.convolve(x,[0.5,0,-0.5],mode='same')
     delta_x[0] = delta_x[1]
     delta_x[-1] = delta_x[-2]
     return delta_x
-
-def difference_theta(x): # 输入的x是角度
+# The input x is an angle
+def difference_theta(x): 
     delta_x = np.zeros_like(x)
     delta_x[1:-1] = x[2:] - x[:-2]
     delta_x[-1] = delta_x[-2]
@@ -70,12 +74,12 @@ def difference_theta(x): # 输入的x是角度
 
 def extract_features(handwritings,features,gpnoise=None,num=2,transform=False):
     '''
-        paths: 路径列表，第一维应该是点的个数
-        features: 这个就是所有特征的列表，是单个feature append进去的
-        num: 使用的信息个数，比如x,y,pressure...,2就是只用012前三个
-        gpnoise: 不知道
-        transform: 不知道
-        use_finger: 是否是用手指写的
+        paths: list of paths, the first dimension should be the number of points
+        features: this is the list of all features, each single feature is appended to it
+        num: number of information columns to use, e.g., x, y, pressure... 2 means only use the first three columns (0,1,2)
+        gpnoise: unknown
+        transform: unknown
+        use_finger: whether it is written with a finger
     '''
     for handwriting in handwritings:
         pressure = handwriting[:,num]
@@ -84,17 +88,17 @@ def extract_features(handwritings,features,gpnoise=None,num=2,transform=False):
         handwriting[:,1] = lpf(handwriting[:,1])
         delta_x = difference(handwriting[:,0])
         delta_y = difference(handwriting[:,1])
-        v = np.sqrt(delta_x ** 2 + delta_y ** 2) # 速度
+        v = np.sqrt(delta_x ** 2 + delta_y ** 2) # velocity
         theta = np.arctan2(delta_y,delta_x)
         cos_theta = np.cos(theta)
         sin_theta = np.sin(theta)
         delta_v = difference(v)
         delta_theta = np.abs(difference_theta(theta))
-        log_curve_radius = np.log((v + 0.05) / (delta_theta + 0.05)) # log的曲线弧度       
+        log_curve_radius = np.log((v + 0.05) / (delta_theta + 0.05)) # log curve radius
         delta_v2 = np.abs(v * delta_theta)
         acceleration = np.sqrt(delta_v ** 2 + delta_v2 ** 2)
 
-        # None在这里的作用是升维，比如说[2,2]会变成[2,1,2],concat起来就是[2,x,2]
+        # None here is used for dimension expansion, for example [2,2] becomes [2,1,2]; concatenating them gives [2,x,2]
         single_feature = np.concatenate((delta_x[:,None],delta_y[:,None],v[:,None],
             cos_theta[:,None],sin_theta[:,None],theta[:,None],log_curve_radius[:,None],
             acceleration[:,None],delta_v[:,None],delta_v2[:,None],delta_theta[:,None],
@@ -113,18 +117,18 @@ def time_functions(handwriting,num=2):
     handwriting[:,1] = lpf(handwriting[:,1])
     delta_x = difference(handwriting[:,0])
     delta_y = difference(handwriting[:,1])
-    v = np.sqrt(delta_x ** 2 + delta_y ** 2) # 速度
+    v = np.sqrt(delta_x ** 2 + delta_y ** 2) # velocity
     theta = np.arctan2(delta_y,delta_x)
     cos_theta = np.cos(theta)
     sin_theta = np.sin(theta)
     delta_v = difference(v)
     delta_theta = np.abs(difference_theta(theta))
-    log_curve_radius = np.log((v + 0.05) / (delta_theta + 0.05)) # log的曲线弧度
+    log_curve_radius = np.log((v + 0.05) / (delta_theta + 0.05)) # logaritmic curvate radius
     delta_v2 = np.abs(v * delta_theta)
     acceleration = np.sqrt(delta_v ** 2 + delta_v2 ** 2)
     delta_x2 = difference(delta_x)
     delta_y2 = difference(delta_y)
-    # None在这里的作用是升维，比如说[2,2]会变成[2,1,2],concat起来就是[2,x,2]
+    # None here is used for dimension expansion, for example [2,2] becomes [2,1,2]; concatenating them gives [2,x,2]
     single_feature = np.concatenate((delta_x[:,None],delta_y[:,None],delta_x2[:,None],delta_y2[:,None],v[:,None],
         cos_theta[:,None],sin_theta[:,None],theta[:,None],log_curve_radius[:,None],
         acceleration[:,None],delta_v[:,None],delta_v2[:,None],delta_theta[:,None],
@@ -136,7 +140,7 @@ def time_functions(handwriting,num=2):
 def letterbox_image(img,target_h,target_w):
     img_h,img_w = img.shape
     scale = min(target_h / img_h,target_w / img_w) 
-    # 长宽比目标size小的，可以变大，不过变大不一定有必要
+    # For targets smaller than original aspect ratio, scaling up is possible, though not always necessary
     new_w,new_h = int(img_w * scale),int(img_h * scale) # 这样做就依然保持了长宽比
     img = cv2.resize(img,(new_w,new_h),interpolation=cv2.INTER_AREA)
     new_img = np.ones((target_h,target_w),dtype=np.uint8) * 255
@@ -152,7 +156,7 @@ def interpolate_torch(org_info,interp_ratio):
     return new_info
 
 def load_ckpt(model,pretrained_root,device,logger,optimizer=None,scheduler=None,mode='train',resume=False): 
-    # pretrained=True是否基于其他任务的预训练
+    # pretrained=True means using pretrained weights from another task
     state_dict = torch.load(pretrained_root,map_location=device)
     if mode == 'train':
         if resume:
@@ -185,7 +189,7 @@ def create_logger(log_root,name='',test=False):
     color_fmt = colored('[%(asctime)s %(name)s]','green') + \
         colored('(%(filename)s %(lineno)d)','yellow') + ': %(levelname)s %(message)s'
     console_handler = logging.StreamHandler(sys.stderr)
-    console_handler.setLevel(logging.INFO) # 分布式的等级
+    console_handler.setLevel(logging.INFO) # Logging level for distributed mode
     console_handler.setFormatter(logging.Formatter(fmt=color_fmt,datefmt='%Y-%m-%d %H:%M:%S'))
     logger.addHandler(console_handler)
 
@@ -206,16 +210,16 @@ def l2_norm(x): # x:(batch_size,seq_len)
     return y
     
 def centernorm_size(handwriting,coord_idx=[0,1]):
-    # coord_idx其实是下标，就是说在handwriting这个二维数组里面是下标0和1分别是x和y
+    # coord_idx is actually the index position, meaning in the 2D handwriting array, indices 0 and 1 correspond to x and y
     assert len(coord_idx) == 2
     pos = handwriting[:,coord_idx]
     minx = np.min(pos,axis=0)
     maxn = np.max(pos,axis=0)
-    pos = (pos - (maxn + minx) / 2.) / np.max(maxn - minx) # 不知道为什么这样除，经验值
+    pos = (pos - (maxn + minx) / 2.) / np.max(maxn - minx) # Not sure, why divide liek this, empirical value
     handwriting[:,coord_idx] = pos
     return handwriting
 
-def norm_pressure(handwriting,pressure_idx=2): # 单纯变0到1，但是其实可以不用
+def norm_pressure(handwriting,pressure_idx=2): # Simply scales 0–1, though not strictly necessary
     pressure = handwriting[:,pressure_idx]
     maxn = np.max(pressure)
     pressure /= maxn
@@ -228,7 +232,7 @@ def fuse_all_conv_bn(model):
         if list(module.named_children()):
             fuse_all_conv_bn(module)
         if isinstance(module,nn.BatchNorm1d):
-            if not stack: # 空的
+            if not stack: # Empty
                 continue
             if isinstance(stack[-1][1],nn.Conv1d):
                 setattr(model,stack[-1][0],fuse_conv_bn_eval(stack[-1][1],module))

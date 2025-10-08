@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from timm.models.layers import trunc_normal_
+from timm.layers import trunc_normal_
 from pytorch_wavelets import DWT1D,IDWT1D
 
 class SelectivePool1d(nn.Module):
@@ -39,7 +39,7 @@ class SelectivePool1d(nn.Module):
         y = torch.sum(v * attn.unsqueeze(3),dim=1).view(N,-1) # (N,d_head * num_heads)
         return y
    
-def get_len_mask(features_lens): # mask需要更新，因为长度不一样
+def get_len_mask(features_lens): # # mask needs to be updated because lengths differ
     features_lens = features_lens
     batch_size = len(features_lens)
     max_len = torch.max(features_lens)
@@ -69,8 +69,8 @@ class MemoryEfficientSwish(nn.Module):
     def forward(self,x):
         return SwishImpl.apply(x)
     
-class SEBlock2(nn.Module): # 通道不一样
-    def __init__(self,d_in,d_hidden,act_layer=Swish): # Swish或SiLU
+class SEBlock2(nn.Module): # channels are different
+    def __init__(self,d_in,d_hidden,act_layer=Swish): # Swish for SiLU
         super().__init__()
         self.fc = nn.Sequential(
             nn.AdaptiveAvgPool1d(1),
@@ -116,7 +116,7 @@ def average_query_expansion(query,gallery,topk=5):
     topk_gallery = np.mean(gallery[indices[:,1:topk + 1],:],axis=1)
     gallery = np.concatenate([gallery,topk_gallery],axis=1)
     return query,gallery
-    def __init__(self,d_feat,l):
+    def __init__(self,d_feat,l): ## TOFIX: intendation error probably
         super().__init__()
         self.conv_depth = nn.Conv1d(d_feat,d_feat,kernel_size=3,padding=1,bias=False,groups=d_feat // 2)
         self.complex_weight = nn.Parameter(torch.randn(d_feat,l,2,dtype=torch.float32) * 0.02)
@@ -147,7 +147,7 @@ def channel_shuffle(x,groups):
     x = x.view(n,-1,l)
     return x
 
-class ShuffleBlock(nn.Module): # 这就是ShufflNetV2的简化实现，本来就这样的，里面没有groups的
+class ShuffleBlock(nn.Module): # this is a simplified implementation of ShuffleNetV2; that's how it's originally designed—no groups inside
     def __init__(self,d_in,kernel_size=3):
         super().__init__()
         self.conv = nn.Sequential(
@@ -243,7 +243,7 @@ class HFGA(nn.Module):
         self.to_v = nn.Conv1d(d_feat,d_feat,1)
         # self.to_out = nn.Conv1d(d_feat,d_feat,1)
     
-    def compute_attn_matmul(self,q,k,v): # k和v是一样的
+    def compute_attn_matmul(self,q,k,v): # k and v are the same
         # q:(n,c,l1), k & v: (n,c,l2), l1比l2长
         attn = k.transpose(1,2) @ q / np.sqrt(q.shape[1]) # (n,l2,l1)
         attn = attn - attn.amax(dim=1,keepdim=True).detach()
@@ -336,7 +336,7 @@ class ContextBlock(nn.Module):
     def spatial_pool(self,x):
         if self.pooling == 'attn':
             context_mask = self.conv_mask(x) # (n,1,l)
-            context_mask = F.softmax(context_mask,dim=2) # 对l维softmax
+            context_mask = F.softmax(context_mask,dim=2) # softmax along length (L) dimension 
             context_mask = context_mask.squeeze().unsqueeze(-1)
             context = torch.matmul(x,context_mask) # (n,c,l) * (n,l,1) = (n,c,1)
         else:

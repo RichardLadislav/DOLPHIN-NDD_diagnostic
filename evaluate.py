@@ -6,8 +6,8 @@ from scipy import io
 import numpy as np
 from model_utils import db_augmentation,average_query_expansion
 
-def evaluate(qf,ql,gf,gl): # q是query，g是gallery
-    # q是一个，gallery是全部19732个
+def evaluate(qf,ql,gf,gl): # q is query, g is gallery
+    # q is one sample, gallery contains all 19732 samples
     # print(qf.shape,ql.shape,qc.shape,gf.shape,gl.shape,gc.shape)
     query = qf.view(-1,1) # (512,1)
     score = torch.mm(gf,query) # (19732,1)
@@ -16,7 +16,8 @@ def evaluate(qf,ql,gf,gl): # q是query，g是gallery
     
     idx = np.argsort(score)[::-1]
     # print(ql,gl[idx][:10],gl[idx][10:20],gl[idx][20:30])
-    query_idx = np.argwhere(gl == ql) # gallery里总有当前query的类别的，而且不止一张图是这个类
+    query_idx = np.argwhere(gl == ql) # # in the gallery, there will always be samples of the same class as the current query, and more than one image per class
+    positive_idx = query_idx
     positive_idx = query_idx
     metrics = compute_mAP(idx,positive_idx)
     return metrics # (ap,CMC)
@@ -28,18 +29,18 @@ def compute_mAP(idx,positive_idx):
         cmc[0] = -1
         return ap,cmc
     len_pos = len(positive_idx)
-    mask = np.in1d(idx,positive_idx) # 找到positive的index，也就是不同摄像头的同一个人
+    mask = np.in1d(idx,positive_idx) # find indexes of positive samples, i.e., the same person under different cameras
     rows_pos = np.argwhere(mask).flatten()
     # print(rows_pos,len_pos)
-    cmc[rows_pos[0]:] = 1 # 赋值1的每个位置都不同，每个位置累加起来再除以总数就是Acc@1这些了
-    # 注意这里有个:,是从第一个往后都赋值1，所以Rank@10会比Rank@1大
-    for i in range(len_pos): # len_pos是不知道的，所以无所谓有多少个gallery样本
-        precision = (i + 1) * 1. / (rows_pos[i] + 1) # 这就是每一个格子的precision
+    cmc[rows_pos[0]:] = 1 # assign 1 from this position onward, each position is different; summing and dividing by the total gives Acc@1, etc.
+    # note that ":" means assigning 1 from the first matching position onward, so Rank@10 will be larger than Rank@1
+    for i in range(len_pos): # len_pos is unknown, so it doesn’t matter how many gallery samples there are
+        precision = (i + 1) * 1. / (rows_pos[i] + 1) # this is the precision for each cell
         if rows_pos[i] != 0:
             old_precision = i * 1.0 / rows_pos[i]
         else:
             old_precision = 1.0
-        ap = ap + (old_precision + precision) / 2 # 不太理解为什么要old_precision然后除以2
+        ap = ap + (old_precision + precision) / 2 # not fully sure why old_precision is used and then divided by 2
         # ap = ap + precision
     ap = ap / len_pos
 

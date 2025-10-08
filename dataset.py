@@ -17,7 +17,7 @@ class Writing(Dataset):
             self.user_labels.extend([i] * len(handwriting_info[k]))
         assert len(self.user_labels) == len(self.features)
         self.features_cnt = len(self.features)
-        self.feature_dims = np.shape(self.features[0])[1] # 就是时间函数的数量，这里是12个
+        self.feature_dims = np.shape(self.features[0])[1] # this is the number of time functions, here it is 12
         self.transform = transform
 
     def __len__(self):

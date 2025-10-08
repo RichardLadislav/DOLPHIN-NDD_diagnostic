@@ -99,7 +99,7 @@ if __name__ == '__main__':
     parser.add_argument('--extract',action='store_true')
     opt = parser.parse_args()
     if opt.divide:
-        divide_data('./data','./data/OLIWER')
+       divide_data('./data','./data/OLIWER')
     if opt.extract:
         extract_and_store('./data/OLIWER/train.pkl','./data/OLIWER/train-tf.pkl')
         extract_and_store('./data/OLIWER/test.pkl','./data/OLIWER/test-tf.pkl')

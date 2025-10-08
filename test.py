@@ -56,6 +56,7 @@ logger = create_logger(opt.log_root,name=opt.name,test=True)
 # with open(query_root,'rb') as f:
 #     query_data = pickle.load(f,encoding='iso-8859-1')
 gallery_root = f'{opt.folder}/test-tf.pkl'
+# Error warining
 with open(gallery_root,'rb') as f:
     gallery_data = pickle.load(f,encoding='iso-8859-1')
 # handwriting_info = {}
