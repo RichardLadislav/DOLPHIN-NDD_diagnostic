@@ -31,7 +31,7 @@ parser.add_argument('--cuda',type=bool,default=True)
 parser.add_argument('--folder',type=str,default='./data/OLIWER')
 parser.add_argument('--ngpu',type=int,default=1)
 parser.add_argument('--gpu',type=str,default='0')
-parser.add_argument('--weights',type=str,default='./weights')
+parser.add_argument('--weights',type=str,default='./weights/model.pth') # change 
 parser.add_argument('--output_root',type=str,default='./output')
 parser.add_argument('--log_root',type=str,default='./logs')
 parser.add_argument('--dba',action='store_true')
