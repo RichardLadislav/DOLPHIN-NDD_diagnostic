@@ -21,14 +21,14 @@ class Head(nn.Module):
 #    """
 #    Clinical head that takes [y_vector (temporal), f3 (frequency)] concatenated.
 #    Input dim = 384 + 384 = 768 in your current setup.
- #   """
+#    """
 #    def __init__(self, in_dim: int, num_classes: int, p_drop: float = 0.1, bias: bool = False):
 #        super().__init__()
-#        hidden = max(128, in_dim // 2)  # 384 here
+#        hidden = max(128, in_dim // 2)   #384 here
 #        self.net = nn.Sequential(
 #            nn.LayerNorm(in_dim),
 #            nn.Linear(in_dim, hidden, bias=bias),
-#            nn.SiLU(), # nn.GELU() proposed by ChatGPT but original authors used SiLU
+#            nn.SiLU(),#  nn.GELU() proposed by ChatGPT but original authors used SiLU
 #            nn.Dropout(p_drop),
 #            nn.Linear(hidden, num_classes, bias=bias)
 #        )
