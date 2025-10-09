@@ -17,6 +17,7 @@ from thop import profile
 from torchstat import stat
 # imported to load joblib files
 from joblib import load
+from tqdm.auto import tqdm
 
 torch._C._jit_set_profiling_mode(False)
 torch._C._jit_set_profiling_executor(False)
