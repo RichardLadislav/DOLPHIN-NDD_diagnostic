@@ -1,0 +1,67 @@
+[2025-10-13 10:43:53 DOLPHIN] (test.py 86): INFO 
+gallery root: ./data/OLIWER/test-tf.pkl
+gallery loader length: 17067 gallery features length: 136535
+model: DOLPHIN
+DBA & AQE: False
+Rerank: False
+[2025-10-13 10:43:54 DOLPHIN] (utils.py 182): INFO mode: "test" weights/model.pth successfully loaded.
+[2025-10-13 10:52:03 DOLPHIN] (test.py 130): INFO repeat times: 1
+[2025-10-13 10:52:09 DOLPHIN] (test.py 161): INFO [final] Rank@1: 93.9481% (0.0000%) Rank@5: 98.8473% (0.0000%) Rank@10: 99.4236% (0.0000%)
+[2025-10-13 10:52:09 DOLPHIN] (test.py 163): INFO [final] mAP: 67.2633% (0.0000%)
+[2025-10-13 10:52:09 DOLPHIN] (test.py 164): INFO time elapsed: 495.32149s
+
+[2025-10-13 11:13:02 DOLPHIN] (test.py 86): INFO 
+gallery root: ./data/OLIWER/test-tf.pkl
+gallery loader length: 17067 gallery features length: 136535
+model: DOLPHIN
+DBA & AQE: False
+Rerank: False
+[2025-10-13 11:13:03 DOLPHIN] (utils.py 182): INFO mode: "test" weights/model.pth successfully loaded.
+[2025-10-13 11:13:49 DOLPHIN] (utils.py 182): INFO mode: "test" weights/model.pth successfully loaded.
+[2025-10-13 11:13:49 DOLPHIN] (test_2.py 67): INFO 
+gallery root: ./data/OLIWER/test-tf.pkl
+loader len: 2134 | total samples: 136535
+model: DOLPHIN
+DBA/AQE: False | Rerank: False
+[2025-10-13 11:14:27 DOLPHIN] (utils.py 182): INFO mode: "test" weights/model.pth successfully loaded.
+[2025-10-13 11:14:27 DOLPHIN] (test_2.py 67): INFO 
+gallery root: ./data/OLIWER/test-tf.pkl
+loader len: 2134 | total samples: 136535
+model: DOLPHIN
+DBA/AQE: False | Rerank: False
+[2025-10-13 11:46:29 DOLPHIN] (test.py 86): INFO 
+gallery root: ./data/OLIWER/test-tf.pkl
+gallery loader length: 17067 gallery features length: 136535
+model: DOLPHIN
+DBA & AQE: False
+Rerank: False
+[2025-10-13 11:46:30 DOLPHIN] (utils.py 183): INFO mode: "test" weights/model.pth successfully loaded.
+[2025-10-13 11:55:17 DOLPHIN] (test.py 130): INFO repeat times: 1
+[2025-10-13 11:55:18 DOLPHIN] (test.py 161): INFO [final] Rank@1: 93.9481% (0.0000%) Rank@5: 98.8473% (0.0000%) Rank@10: 99.4236% (0.0000%)
+[2025-10-13 11:55:18 DOLPHIN] (test.py 163): INFO [final] mAP: 67.2634% (0.0000%)
+[2025-10-13 11:55:18 DOLPHIN] (test.py 164): INFO time elapsed: 528.31158s
+
+[2025-10-13 13:19:47 DOLPHIN] (test.py 87): INFO 
+gallery root: ./data/OLIWER/test-tf.pkl
+gallery loader length: 17067 gallery features length: 136535
+model: DOLPHIN
+DBA & AQE: False
+Rerank: False
+[2025-10-13 13:19:48 DOLPHIN] (utils.py 183): INFO mode: "test" weights/model.pth successfully loaded.
+[2025-10-13 13:27:51 DOLPHIN] (test.py 131): INFO repeat times: 1
+[2025-10-13 13:27:52 DOLPHIN] (test.py 162): INFO [final] Rank@1: 93.9481% (0.0000%) Rank@5: 98.8473% (0.0000%) Rank@10: 99.4236% (0.0000%)
+[2025-10-13 13:27:52 DOLPHIN] (test.py 164): INFO [final] mAP: 67.2634% (0.0000%)
+[2025-10-13 13:27:52 DOLPHIN] (test.py 165): INFO time elapsed: 484.54499s
+
+[2025-10-13 13:35:25 DOLPHIN] (test.py 87): INFO 
+gallery root: ./data/OLIWER/test-tf.pkl
+gallery loader length: 17067 gallery features length: 136535
+model: DOLPHIN
+DBA & AQE: False
+Rerank: False
+[2025-10-13 13:35:26 DOLPHIN] (utils.py 183): INFO mode: "test" weights/model.pth successfully loaded.
+[2025-10-13 13:43:15 DOLPHIN] (test.py 131): INFO repeat times: 1
+[2025-10-13 13:43:16 DOLPHIN] (test.py 162): INFO [final] Rank@1: 93.9481% (0.0000%) Rank@5: 98.8473% (0.0000%) Rank@10: 99.4236% (0.0000%)
+[2025-10-13 13:43:16 DOLPHIN] (test.py 164): INFO [final] mAP: 67.2634% (0.0000%)
+[2025-10-13 13:43:16 DOLPHIN] (test.py 165): INFO time elapsed: 470.47407s
+

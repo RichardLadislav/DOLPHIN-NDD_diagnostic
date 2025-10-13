@@ -116,28 +116,29 @@ def average_query_expansion(query,gallery,topk=5):
     topk_gallery = np.mean(gallery[indices[:,1:topk + 1],:],axis=1)
     gallery = np.concatenate([gallery,topk_gallery],axis=1)
     return query,gallery
-    def __init__(self,d_feat,l): ## TOFIX: intendation error probably
-        super().__init__()
-        self.conv_depth = nn.Conv1d(d_feat,d_feat,kernel_size=3,padding=1,bias=False,groups=d_feat // 2)
-        self.complex_weight = nn.Parameter(torch.randn(d_feat,l,2,dtype=torch.float32) * 0.02)
-        trunc_normal_(self.complex_weight,std=.02)
-        self.head = nn.Linear(d_feat,d_feat,bias=True)
 
-    def forward(self,x):
-        x1 = x[:,:,0::2]
-        x2 = x[:,:,1::2]
-        x1 = self.conv_depth(x1)
-        _,_,l = x2.shape
-        x2 = torch.fft.rfft(x2,dim=2,norm='ortho')
-        weight = self.complex_weight
-        if not weight.shape[1:2] == x2.shape[2:3]:
-            weight = F.interpolate(weight.permute(2,0,1).unsqueeze(2),size=(1,x2.shape[2]),mode='bilinear',align_corners=True).squeeze().permute(1,2,0)
-        weight = torch.view_as_complex(weight.contiguous())
-        x2 *= weight
-        x2 = torch.fft.irfft(x2,n=l,dim=2,norm='ortho')
-        y = x1 + x2
-        y = self.head(y.transpose(1,2)).transpose(1,2)
-        return y
+def __init__(self,d_feat,l): ## TOFIX: intendation error probably
+    super().__init__()
+    self.conv_depth = nn.Conv1d(d_feat,d_feat,kernel_size=3,padding=1,bias=False,groups=d_feat // 2)
+    self.complex_weight = nn.Parameter(torch.randn(d_feat,l,2,dtype=torch.float32) * 0.02)
+    trunc_normal_(self.complex_weight,std=.02)
+    self.head = nn.Linear(d_feat,d_feat,bias=True)
+
+def forward(self,x):
+    x1 = x[:,:,0::2]
+    x2 = x[:,:,1::2]
+    x1 = self.conv_depth(x1)
+    _,_,l = x2.shape
+    x2 = torch.fft.rfft(x2,dim=2,norm='ortho')
+    weight = self.complex_weight
+    if not weight.shape[1:2] == x2.shape[2:3]:
+        weight = F.interpolate(weight.permute(2,0,1).unsqueeze(2),size=(1,x2.shape[2]),mode='bilinear',align_corners=True).squeeze().permute(1,2,0)
+    weight = torch.view_as_complex(weight.contiguous())
+    x2 *= weight
+    x2 = torch.fft.irfft(x2,n=l,dim=2,norm='ortho')
+    y = x1 + x2
+    y = self.head(y.transpose(1,2)).transpose(1,2)
+    return y
 
 def channel_shuffle(x,groups):
     n,c,l = x.shape

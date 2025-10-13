@@ -1,0 +1,78 @@
+[2025-10-09 15:48:38 DOLPHIN] (test.py 85): INFO 
+gallery root: ./data/OLIWER/test-tf.pkl
+gallery loader length: 17067 gallery features length: 136535
+model: DOLPHIN
+DBA & AQE: False
+Rerank: False
+[2025-10-09 15:49:44 DOLPHIN] (test.py 85): INFO 
+gallery root: ./data/OLIWER/test-tf.pkl
+gallery loader length: 17067 gallery features length: 136535
+model: DOLPHIN
+DBA & AQE: False
+Rerank: False
+[2025-10-09 15:49:45 DOLPHIN] (utils.py 180): INFO mode: "test" weights/model.pth successfully loaded.
+[2025-10-09 15:58:35 DOLPHIN] (test.py 85): INFO 
+gallery root: ./data/OLIWER/test-tf.pkl
+gallery loader length: 17067 gallery features length: 136535
+model: DOLPHIN
+DBA & AQE: False
+Rerank: False
+[2025-10-09 15:58:36 DOLPHIN] (utils.py 180): INFO mode: "test" weights/model.pth successfully loaded.
+[2025-10-09 16:06:34 DOLPHIN] (test.py 85): INFO 
+gallery root: ./data/OLIWER/test-tf.pkl
+gallery loader length: 17067 gallery features length: 136535
+model: DOLPHIN
+DBA & AQE: False
+Rerank: False
+[2025-10-09 16:11:05 DOLPHIN] (test.py 85): INFO 
+gallery root: ./data/OLIWER/test-tf.pkl
+gallery loader length: 17067 gallery features length: 136535
+model: DOLPHIN
+DBA & AQE: False
+Rerank: False
+[2025-10-09 16:16:30 DOLPHIN] (test.py 85): INFO 
+gallery root: ./data/OLIWER/test-tf.pkl
+gallery loader length: 17067 gallery features length: 136535
+model: DOLPHIN
+DBA & AQE: False
+Rerank: False
+[2025-10-09 16:18:47 DOLPHIN] (test.py 85): INFO 
+gallery root: ./data/OLIWER/test-tf.pkl
+gallery loader length: 17067 gallery features length: 136535
+model: DOLPHIN
+DBA & AQE: False
+Rerank: False
+[2025-10-09 16:21:29 DOLPHIN] (test.py 85): INFO 
+gallery root: ./data/OLIWER/test-tf.pkl
+gallery loader length: 17067 gallery features length: 136535
+model: DOLPHIN
+DBA & AQE: False
+Rerank: False
+[2025-10-09 16:21:30 DOLPHIN] (utils.py 182): INFO mode: "test" weights/model.pth successfully loaded.
+[2025-10-09 16:23:06 DOLPHIN] (test.py 85): INFO 
+gallery root: ./data/OLIWER/test-tf.pkl
+gallery loader length: 17067 gallery features length: 136535
+model: DOLPHIN
+DBA & AQE: False
+Rerank: False
+[2025-10-09 16:23:08 DOLPHIN] (utils.py 182): INFO mode: "test" ./weights/model.pth successfully loaded.
+[2025-10-09 16:28:36 DOLPHIN] (test.py 85): INFO 
+gallery root: ./data/OLIWER/test-tf.pkl
+gallery loader length: 17067 gallery features length: 136535
+model: DOLPHIN
+DBA & AQE: False
+Rerank: False
+[2025-10-09 16:35:24 DOLPHIN] (test.py 85): INFO 
+gallery root: ./data/OLIWER/test-tf.pkl
+gallery loader length: 17067 gallery features length: 136535
+model: DOLPHIN
+DBA & AQE: False
+Rerank: False
+[2025-10-09 16:35:24 DOLPHIN] (utils.py 182): INFO mode: "test" weights/model.pth successfully loaded.
+[2025-10-09 16:46:15 DOLPHIN] (test.py 85): INFO 
+gallery root: ./data/OLIWER/test-tf.pkl
+gallery loader length: 17067 gallery features length: 136535
+model: DOLPHIN
+DBA & AQE: False
+Rerank: False
+[2025-10-09 16:46:19 DOLPHIN] (utils.py 182): INFO mode: "test" ./weights/model.pth successfully loaded.
