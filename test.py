@@ -18,6 +18,7 @@ from torchstat import stat
 # imported to load joblib files
 from joblib import load
 from tqdm.auto import tqdm
+from viz import plot_cmc, bar_retrieval_scores, plot_tsne, plot_length_hist, plot_feature_timeseries
 
 torch._C._jit_set_profiling_mode(False)
 torch._C._jit_set_profiling_executor(False)
@@ -162,7 +163,23 @@ def test_impl(model):
         f'Rank@10: {top10_mean:.4f}% ({top10_std:.4f}%)')
     logger.info(f'[final] mAP: {ap_mean * 100.:.4f}% ({ap_std * 100:.4f}%)')
     logger.info(f'time elapsed: {time.time() - time_elapsed_start:.5f}s\n')
+    # Chat GPT: plot CMC curve
+    # We have CMC from compute_metrics (as a vector) only in the old API.
+    # With the cleaned compute_metrics, you can directly plot bars using r@k + mAP:
+    bar_retrieval_scores(top1_mean, top5_mean, top10_mean, ap_mean, save_path=f"{opt.output_root}/retrieval_bars.png")
 
+    # t-SNE of all features (optionally sample)
+    plot_tsne(all_features, all_labels, save_path=f"{opt.output_root}/tsne.png", perplexity=40, max_points=6000)
+
+    # length histogram (you already have lengths in your collate; collect once)
+    # We can compute from the dataset:
+    lengths = np.array([len(feat) for feat in gallery_dataset.features], dtype=np.int32)
+    plot_length_hist(lengths, save_path=f"{opt.output_root}/length_hist.png")
+
+    # time-functions snapshot (pick one random sample)
+    ridx = np.random.randint(len(gallery_dataset))
+    sample_tf = gallery_dataset.features[ridx]
+    plot_feature_timeseries(sample_tf, save_path=f"{opt.output_root}/tf_snapshot.png", title="Random sample time-functions")
 def test():
     load_ckpt(model,opt.weights,device,logger,mode='test')    
     test_impl(model)
