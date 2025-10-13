@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from joblib import dump,load
 
+
 class ButterWorthLPF: 
     # ButterWorth filter
     def __init__(self,order=3,half_pnt=15.0,fnyquist=100.0):
