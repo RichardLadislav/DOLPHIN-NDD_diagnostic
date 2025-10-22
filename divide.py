@@ -22,7 +22,7 @@ import tempfile
 import numpy as np
 from tqdm import tqdm
 from joblib import dump, load  # load is here if you later want mmap_mode='r'
-
+from pathlib import Path
 from utils import time_functions, clock
 
 
@@ -233,19 +233,133 @@ def extract_and_store(src_root='./data/OLIWER/train.pkl',
 # CLI
 # ---------------------------
 
+## PreLBD extraction adition 
+def _robust_load_pkl(path):
+    """Try joblib.load first (if compressed), else pickle.load."""
+    try:
+        from joblib import load as joblib_load
+        return joblib_load(str(path))
+    except Exception:
+        with open(path, "rb") as f:
+            return pickle.load(f, encoding="iso-8859-1")
+
+@clock
+def extract_and_store_PRELBD(src_path="./data/LBD_CZ_002/LBD_CZ_002.pkl",
+                             tgt_path="./data/LBD_CZ_002/LBD_CZ_002-tf.pkl",
+                             compress=("lz4", 3),
+                             progress=True,
+                             gc_every=50,
+                             p_col=None):
+    """
+    Build a dedicated PRELBD time-functions dataset:
+      src_path: LBD_CZ_002.pkl (dict {writer_id: [np.ndarray(T,3 or more), ...]})
+      tgt_path: LBD_CZ_002-tf.pkl (dict {writer_id: [np.ndarray(T,14), ...]})
+
+    Notes:
+    - If your LBD_CZ_002.pkl samples are already (T,3) = (x,y,p), leave p_col=None.
+    - If they still contain extra columns and p is at a custom index, set p_col (e.g., p_col=6).
+    - Writes ONE separate file for LBD_CZ_002 only; does NOT merge with OLIWER.
+    """
+    src_path = Path(src_path)
+    tgt_path = Path(tgt_path)
+    assert src_path.exists(), f"Missing source: {src_path}"
+
+    handwriting_info = _robust_load_pkl(src_path)
+
+    keys = list(handwriting_info.keys())
+    bar = tqdm(keys, desc=f"LBD_CZ_002 → {tgt_path.name}", unit="writer") if progress else keys
+
+    processed_count, failed = 0, []
+
+    try:
+        for k in bar:
+            try:
+                seq_list = handwriting_info[k]  # list of arrays
+                for i in range(len(seq_list)):
+                    arr = seq_list[i]
+
+                    # If your stored arrays still have >3 cols, select (x,y,p) before TFs:
+                    if p_col is not None and arr.shape[1] > 3:
+                        arr = arr[:, [0, 1, p_col]].astype(np.float32, copy=False)
+
+                    # Compute 14 time functions
+                    tf = time_functions(arr)  # expects (T,3) -> returns (T,14)
+
+                    # Standardize dtype/layout
+                    seq_list[i] = np.asarray(tf, dtype=np.float32, order="C")
+
+                processed_count += 1
+                if progress:
+                    bar.set_postfix_str(f"ok={processed_count}, fail={len(failed)}", refresh=False)
+
+                if gc_every and (processed_count % gc_every == 0):
+                    gc.collect()
+
+            except Exception:
+                failed.append(k)
+                if progress:
+                    bar.set_postfix_str(f"ok={processed_count}, fail={len(failed)}", refresh=False)
+                # continue; we'll still save what we have
+
+        # Save as a separate PRELBD-tf.pkl (atomic)
+        tgt_path.parent.mkdir(parents=True, exist_ok=True)
+        _safe_dump_single_file(handwriting_info, tgt_path.as_posix(), compress=compress, protocol=5)
+
+    except KeyboardInterrupt:
+        partial = tgt_path.as_posix() + ".partial"
+        _safe_dump_single_file(handwriting_info, partial, compress=compress, protocol=5)
+        print(f"\n[extract_and_store_PRELBD] Interrupted. Partial saved to: {partial}")
+        raise
+    except Exception as e:
+        partial = tgt_path.as_posix() + ".partial"
+        try:
+            _safe_dump_single_file(handwriting_info, partial, compress=compress, protocol=5)
+            print(f"\n[extract_and_store_PRELBD] Error. Partial saved to: {partial}\nError: {e}")
+        except Exception as e2:
+            print(f"\n[extract_and_store_PRELBD] Error and partial save failed: {e} / save_err={e2}")
+        raise
+    finally:
+        if progress and hasattr(bar, "close"):
+            bar.close()
+        gc.collect()
+
+    if failed:
+        print(f"[extract_and_store_PRELBD] Completed with {len(failed)} failed writers: "
+              f"{failed[:5]}{'...' if len(failed) > 5 else ''}")
+    else:
+        print("[extract_and_store_PRELBD] Completed successfully with no failed writers.")
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--divide', action='store_true', help="Merge datasets and create train/test splits.")
-    parser.add_argument('--extract', action='store_true', help="Run feature extraction and write single big files.")
-    parser.add_argument('--src_root', type=str, default='./data', help="Root containing OLHWDB2, DCOH-E, COUCH09.")
-    parser.add_argument('--tgt_root', type=str, default='./data/OLIWER', help="Target root for OLIWER outputs.")
+    parser.add_argument('--divide', action='store_true',
+                        help="Merge datasets and create train/test splits (OLIWER).")
+    parser.add_argument('--extract', action='store_true',
+                        help="Run feature extraction on OLIWER train/test and write single big files.")
+    parser.add_argument('--src_root', type=str, default='./data',
+                        help="Root containing OLHWDB2, DCOH-E, COUCH09.")
+    parser.add_argument('--tgt_root', type=str, default='./data/OLIWER',
+                        help="Target root for OLIWER outputs.")
     parser.add_argument('--seed', type=int, default=123)
-    parser.add_argument('--no_compress', action='store_true', help="Disable compression for fastest I/O.")
-    parser.add_argument('--gc_every', type=int, default=50, help="GC every N writers during extraction.")
+    parser.add_argument('--no_compress', action='store_true',
+                        help="Disable compression for fastest I/O.")
+    parser.add_argument('--gc_every', type=int, default=50,
+                        help="GC every N writers during extraction.")
+
+    # --- NEW: standalone PRELBD TF extraction ---
+    parser.add_argument('--extract_prelbd', action='store_true',
+                        help="Extract time-functions for LBD_CZ_002 only (no merging with OLIWER).")
+    parser.add_argument('--prelbd_src', type=str, default='./data/LBD_CZ_002/LBD_CZ_002.pkl',
+                        help="Path to LBD_CZ_002.pkl (writer->list of (T,3 or more) arrays).")
+    parser.add_argument('--prelbd_tgt', type=str, default='./data/LBD_CZ_002/LBD_CZ_002-tf.pkl',
+                        help="Output path for LBD_CZ_002 time-functions pickle.")
+    parser.add_argument('--p_col', type=int, default=None,
+                        help="Pressure column index in LBD_CZ_002pkl if not already at index 2 (e.g., 6).")
+
     args = parser.parse_args()
 
     compress = None if args.no_compress else ('lz4', 3)
 
+    # ---- OLIWER pipeline (unchanged) ----
     if args.divide:
         divide_data(args.src_root, args.tgt_root, seed=args.seed)
 
@@ -255,6 +369,18 @@ def main():
         extract_and_store(f'{args.tgt_root}/test.pkl',  f'{args.tgt_root}/test-tf.pkl',
                           compress=compress, progress=True, gc_every=args.gc_every)
 
+    # ---- NEW: PRELBD-only time-function extraction ----
+    if args.extract_prelbd:
+        extract_and_store_PRELBD(
+            src_path=args.prelbd_src,
+            tgt_path=args.prelbd_tgt,
+            compress=compress,
+            progress=True,
+            gc_every=args.gc_every,
+            p_col=args.p_col  # set to 6 if your PRELBD has p at column 6
+        )
+
 
 if __name__ == '__main__':
     main()
+
