@@ -97,9 +97,12 @@ def _read_svc_keep_cols(path: Path, keep_cols=(0, 1, 6), encoding="utf-8") -> np
     header = lines[0].strip()
     body = [ln.strip() for ln in lines[1:] if ln.strip()]  # skip header
 
-    # pick delimiter by highest split stability
-    def split_with(d, s): 
-        return [tok for tok in s.split(d) if tok != ""]
+    def split_with(d, s):
+        toks = s.split(d)
+        if len(toks) == 1 and " " in s:  # fallback if delimiter failed
+            toks = s.split()
+        return [t for t in toks if t != ""]
+
 
     # choose delimiter that yields most consistent column counts on a few sample lines
     delim = None
@@ -121,6 +124,9 @@ def _read_svc_keep_cols(path: Path, keep_cols=(0, 1, 6), encoding="utf-8") -> np
     for s in body:
         toks = split_with(delim, s) if delim is not None else s.split()
         # guard for short lines
+
+        max_column_debug = max(keep_cols, default=0)  
+        max_lentoks_debug=len(toks)
         if max(keep_cols, default=0) >= len(toks):
             continue
         try:
@@ -199,7 +205,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--dataset',
         type=str,
-        default='couch',
+        default='prelbd',
         help='Processed dataset names: [olhwdb2, dcohe, couch, prelbd]'
     )
     parser.add_argument(
