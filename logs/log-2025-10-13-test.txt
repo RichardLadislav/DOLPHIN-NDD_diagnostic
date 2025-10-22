@@ -65,3 +65,39 @@ Rerank: False
 [2025-10-13 13:43:16 DOLPHIN] (test.py 164): INFO [final] mAP: 67.2634% (0.0000%)
 [2025-10-13 13:43:16 DOLPHIN] (test.py 165): INFO time elapsed: 470.47407s
 
+[2025-10-13 14:52:29 DOLPHIN] (test.py 87): INFO 
+gallery root: ./data/OLIWER/test-tf.pkl
+gallery loader length: 17067 gallery features length: 136535
+model: DOLPHIN
+DBA & AQE: False
+Rerank: False
+[2025-10-13 14:52:29 DOLPHIN] (utils.py 183): INFO mode: "test" weights/model.pth successfully loaded.
+[2025-10-13 15:00:02 DOLPHIN] (test.py 131): INFO repeat times: 1
+[2025-10-13 15:00:03 DOLPHIN] (test.py 162): INFO [final] Rank@1: 93.9481% (0.0000%) Rank@5: 98.8473% (0.0000%) Rank@10: 99.4236% (0.0000%)
+[2025-10-13 15:00:03 DOLPHIN] (test.py 164): INFO [final] mAP: 67.2634% (0.0000%)
+[2025-10-13 15:00:03 DOLPHIN] (test.py 165): INFO time elapsed: 453.38982s
+
+[2025-10-13 16:17:41 DOLPHIN] (test.py 87): INFO 
+gallery root: ./data/OLIWER/test-tf.pkl
+gallery loader length: 17067 gallery features length: 136535
+model: DOLPHIN
+DBA & AQE: False
+Rerank: False
+[2025-10-13 16:17:42 DOLPHIN] (utils.py 183): INFO mode: "test" weights/model.pth successfully loaded.
+[2025-10-13 16:25:47 DOLPHIN] (test.py 131): INFO repeat times: 1
+[2025-10-13 16:25:48 DOLPHIN] (test.py 162): INFO [final] Rank@1: 93.9481% (0.0000%) Rank@5: 98.8473% (0.0000%) Rank@10: 99.4236% (0.0000%)
+[2025-10-13 16:25:48 DOLPHIN] (test.py 164): INFO [final] mAP: 67.2634% (0.0000%)
+[2025-10-13 16:25:48 DOLPHIN] (test.py 165): INFO time elapsed: 486.45188s
+
+[2025-10-13 16:38:33 DOLPHIN] (test.py 87): INFO 
+gallery root: ./data/OLIWER/test-tf.pkl
+gallery loader length: 17067 gallery features length: 136535
+model: DOLPHIN
+DBA & AQE: False
+Rerank: False
+[2025-10-13 16:38:33 DOLPHIN] (utils.py 183): INFO mode: "test" weights/model.pth successfully loaded.
+[2025-10-13 16:46:36 DOLPHIN] (test.py 131): INFO repeat times: 1
+[2025-10-13 16:46:37 DOLPHIN] (test.py 162): INFO [final] Rank@1: 93.9481% (0.0000%) Rank@5: 98.8473% (0.0000%) Rank@10: 99.4236% (0.0000%)
+[2025-10-13 16:46:37 DOLPHIN] (test.py 164): INFO [final] mAP: 67.2634% (0.0000%)
+[2025-10-13 16:46:37 DOLPHIN] (test.py 165): INFO time elapsed: 483.40236s
+

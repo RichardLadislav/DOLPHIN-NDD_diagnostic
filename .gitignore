@@ -157,6 +157,7 @@ cython_debug/
 # data files
 data-raw/
 data/
+output/
 *pkl
 *wav
 *zip

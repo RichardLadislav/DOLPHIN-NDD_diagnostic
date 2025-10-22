@@ -3,6 +3,13 @@
 import os, math, json
 import numpy as np
 import matplotlib.pyplot as plt
+# Tryout of 3D s-TNS plotting
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401  (needed for 3D)
+from sklearn.manifold import TSNE
+from sklearn.preprocessing import normalize
+
 
 # ---------- basic helpers ----------
 def _mkdir(p): os.makedirs(p, exist_ok=True)
@@ -135,3 +142,81 @@ def plot_xy_traj(xy, save_path="output/trajectory.png", title="Handwriting traje
     plt.tight_layout()
     plt.savefig(save_path, dpi=300)
     plt.close()
+
+def save_topk_panel(query_vec, gallery_mat, gallery_labels, label_names=None, k=5, save_path="output/topk.png"):
+    """Shows the top-k gallery items (just text + bars). Replace with trajectory plots if you have raw x,y."""
+    sims = gallery_mat @ query_vec  # both L2-normalized
+    idx = np.argsort(-sims)[:k]
+    scores = sims[idx]
+    labels = gallery_labels[idx]
+    txt = [f"{i+1}. label={labels[i]}  score={scores[i]:.3f}" for i in range(k)]
+    _mkdir(os.path.dirname(save_path) or ".")
+    plt.figure(figsize=(6, 1 + 0.35*k))
+    plt.barh(range(k), scores[::-1])
+    plt.yticks(range(k), [t for t in txt[::-1]], fontsize=8)
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300)
+    plt.close()
+
+# ================================================
+# 3D t-SNE (temporal+frequency embedding) preview
+# ================================================
+
+def tsne_3d(features, labels, save_path=None, max_points=8000, perplexity=35, random_state=42):
+    """
+    features : (N, D) numpy or torch tensor (use all_features from your pipeline)
+    labels   : (N,)  numpy or torch tensor of ints (use all_labels)
+    """
+    # to numpy
+    if "torch" in str(type(features)):
+        features = features.detach().cpu().numpy()
+    if "torch" in str(type(labels)):
+        labels = labels.detach().cpu().numpy()
+
+    # optional subsample to keep it fast & legible
+    N = len(features)
+    if max_points and N > max_points:
+        idx = np.random.RandomState(random_state).choice(N, size=max_points, replace=False)
+        X = features[idx]
+        y = labels[idx]
+    else:
+        X, y = features, labels
+
+    # safety: t-SNE requires perplexity < n_samples
+    perp = min(perplexity, max(5, len(X)//3))
+
+    # cosine-friendly scaling
+    Xn = normalize(X, norm="l2", axis=1)
+
+    tsne = TSNE(
+        n_components=3,
+        init="pca",
+        learning_rate="auto",
+        perplexity=perp,
+        metric="euclidean",
+        n_iter=1500,
+        random_state=random_state,
+        verbose=0,
+    )
+    Z = tsne.fit_transform(Xn)  # (n, 3)
+
+    # 3D scatter
+    fig = plt.figure(figsize=(7, 6))
+    ax = fig.add_subplot(111, projection='3d')
+    # color by label; keep defaults simple
+    sc = ax.scatter(Z[:, 0], Z[:, 1], Z[:, 2], s=6, c=y, alpha=0.9)
+    ax.set_title("3D t-SNE of embeddings")
+    ax.set_xlabel("t-SNE 1")
+    ax.set_ylabel("t-SNE 2")
+    ax.set_zlabel("t-SNE 3")
+    # light frame
+    for axis in (ax.xaxis, ax.yaxis, ax.zaxis):
+        axis.set_pane_color((1,1,1,0.0))
+        axis._axinfo["grid"]["linewidth"] = 0.3
+
+    if save_path:
+        plt.tight_layout()
+        plt.savefig(save_path, dpi=180, bbox_inches="tight")
+        print(f"Saved 3D t-SNE to: {save_path}")
+    plt.show()
+    return Z, y
