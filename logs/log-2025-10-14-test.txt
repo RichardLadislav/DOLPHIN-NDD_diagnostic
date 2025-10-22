@@ -1,0 +1,12 @@
+[2025-10-14 14:54:41 DOLPHIN] (test.py 87): INFO 
+gallery root: ./data/OLIWER/test-tf.pkl
+gallery loader length: 17067 gallery features length: 136535
+model: DOLPHIN
+DBA & AQE: False
+Rerank: False
+[2025-10-14 14:54:42 DOLPHIN] (utils.py 183): INFO mode: "test" weights/model.pth successfully loaded.
+[2025-10-14 15:03:37 DOLPHIN] (test.py 131): INFO repeat times: 1
+[2025-10-14 15:03:38 DOLPHIN] (test.py 162): INFO [final] Rank@1: 93.9481% (0.0000%) Rank@5: 98.8473% (0.0000%) Rank@10: 99.4236% (0.0000%)
+[2025-10-14 15:03:38 DOLPHIN] (test.py 164): INFO [final] mAP: 67.2634% (0.0000%)
+[2025-10-14 15:03:38 DOLPHIN] (test.py 165): INFO time elapsed: 536.55601s
+

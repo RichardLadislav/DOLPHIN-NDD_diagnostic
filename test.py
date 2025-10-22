@@ -18,7 +18,7 @@ from torchstat import stat
 # imported to load joblib files
 from joblib import load
 from tqdm.auto import tqdm
-from viz import plot_cmc, bar_retrieval_scores, plot_tsne, plot_length_hist, plot_feature_timeseries
+from viz import plot_cmc, bar_retrieval_scores, plot_tsne, plot_length_hist, plot_feature_timeseries, save_topk_panel, plot_umap
 
 torch._C._jit_set_profiling_mode(False)
 torch._C._jit_set_profiling_executor(False)
@@ -168,18 +168,49 @@ def test_impl(model):
     # With the cleaned compute_metrics, you can directly plot bars using r@k + mAP:
     bar_retrieval_scores(top1_mean, top5_mean, top10_mean, ap_mean, save_path=f"{opt.output_root}/retrieval_bars.png")
 
-    # t-SNE of all features (optionally sample)
-    plot_tsne(all_features, all_labels, save_path=f"{opt.output_root}/tsne.png", perplexity=40, max_points=6000)
+    # ====== visualization additions ======
+    # Summary bars
+    bar_retrieval_scores(
+        top1_mean, top5_mean, top10_mean, ap_mean,
+        save_path=f"{opt.output_root}/retrieval_bars.png"
+    )
 
-    # length histogram (you already have lengths in your collate; collect once)
-    # We can compute from the dataset:
+    # t-SNE
+    plot_tsne(all_features, all_labels, save_path=f"{opt.output_root}/tsne.png",
+              perplexity=40, max_points=6000)
+
+    # Length distribution
     lengths = np.array([len(feat) for feat in gallery_dataset.features], dtype=np.int32)
     plot_length_hist(lengths, save_path=f"{opt.output_root}/length_hist.png")
 
-    # time-functions snapshot (pick one random sample)
+    # Sample time-functions
     ridx = np.random.randint(len(gallery_dataset))
     sample_tf = gallery_dataset.features[ridx]
-    plot_feature_timeseries(sample_tf, save_path=f"{opt.output_root}/tf_snapshot.png", title="Random sample time-functions")
+    plot_feature_timeseries(sample_tf, save_path=f"{opt.output_root}/tf_snapshot.png",
+                            title="Random sample time-functions")
+
+    # ====== NEW: top-k retrieval panel ======
+    # choose a random query to visualize retrieval ranking
+    q_idx = np.random.randint(len(query_features))
+    q_vec = query_features[q_idx] / np.linalg.norm(query_features[q_idx])
+    save_topk_panel(
+        q_vec,
+        gallery_features / np.linalg.norm(gallery_features, axis=1, keepdims=True),
+        gallery_labels,
+        k=5,
+        save_path=f"{opt.output_root}/topk_panel.png"
+    )
+    
+    plot_umap(
+        all_features,
+        all_labels,
+        save_path=f"{opt.output_root}/umap.png",
+        n_neighbors=15,   # try 15–50; higher ⇒ more global structure
+        min_dist=0.1,     # try 0.0–0.3; lower ⇒ tighter clusters
+        max_points=10000  # subsample to keep it fast/clean
+    )
+
+
 def test():
     load_ckpt(model,opt.weights,device,logger,mode='test')    
     test_impl(model)

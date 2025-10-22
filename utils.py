@@ -159,7 +159,7 @@ def interpolate_torch(org_info,interp_ratio):
 
 def load_ckpt(model,pretrained_root,device,logger,optimizer=None,scheduler=None,mode='train',resume=False): 
     # pretrained=True means using pretrained weights from another task
-    state_dict = torch.load(pretrained_root,map_location=device)
+    state_dict = torch.load(pretrained_root,map_location=device, weights_only=True) # added weights_only = True for protection
     #state_dict = load(pretrained_root) 
     if mode == 'train':
         if resume:
