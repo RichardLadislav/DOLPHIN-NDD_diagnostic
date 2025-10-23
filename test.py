@@ -15,10 +15,10 @@ import matplotlib.pyplot as plt
 from ptflops import get_model_complexity_info
 from thop import profile
 from torchstat import stat
-# imported to load joblib files
-from joblib import load
+from joblib import load # imported to load joblib files
 from tqdm.auto import tqdm
 from viz import plot_cmc, bar_retrieval_scores, plot_tsne, plot_length_hist, plot_feature_timeseries, save_topk_panel, plot_umap
+from pathlib import Path 
 
 torch._C._jit_set_profiling_mode(False)
 torch._C._jit_set_profiling_executor(False)
@@ -216,6 +216,44 @@ def test_impl(model):
 def test():
     load_ckpt(model,opt.weights,device,logger,mode='test')    
     test_impl(model)
+    
+def generate_lbd_labels(dataset_root: str):
+    """
+    Scans dataset_root for subfolders like:
+        HC-33#1, HC-34#1, pre-LBD-1#1, ...
+    and assigns:
+        0 → healthy controls (HC-*)
+        1 → pre-LBD patients (pre-LBD-*)
+    
+    Returns:
+        label_dict: { 'HC-33#1': 0, 'pre-LBD-1#1': 1, ... }
+        label_names: list of folder names (writers)
+        labels: list of integer labels [0, 1, ...] aligned with label_names
+    """
+    root = Path(dataset_root)
+    assert root.exists(), f"Path not found: {root}"
+    
+    label_dict = {}
+    label_names = []
+    labels = []
+    
+    for folder in sorted(root.iterdir()):
+        if not folder.is_dir():
+            continue
+        name = folder.name
+        if name.lower().startswith("hc"):
+            label = 0  # healthy control
+        elif name.lower().startswith("pre-lbd"):
+            label = 1  # patient
+        else:
+            print(f"[WARN] Unrecognized folder name: {name}")
+            continue
+        label_dict[name] = label
+        label_names.append(name)
+        labels.append(label)
+    
+    print(f"Found {len(label_dict)} subjects: {sum(v==0 for v in labels)} HC, {sum(v==1 for v in labels)} pre-LBD")
+    return label_dict, label_names, labels
 
 def main():
     test()
