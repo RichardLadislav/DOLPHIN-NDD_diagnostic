@@ -50,6 +50,7 @@ def summarize_dataset(data):
         print(f"📏 Min/Max length: {min(lens)} / {max(lens)}")
 
     print("\nExample writer IDs:", list(data.keys())[:5])
+    print("\nExample writer features:", list(data.items())[:5])
 
 
 def inspect_writer(data, writer_id):
