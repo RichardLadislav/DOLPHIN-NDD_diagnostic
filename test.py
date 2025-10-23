@@ -30,7 +30,8 @@ parser.add_argument('--num_classes',type=int,default=1731)
 parser.add_argument('--epoch',type=int,default=80)
 parser.add_argument('--seed',type=int,default=123)
 parser.add_argument('--cuda',type=bool,default=True)
-parser.add_argument('--folder',type=str,default='./data/OLIWER')
+#parser.add_argument('--folder',type=str,default='./data/OLIWER')
+parser.add_argument('--folder',type=str,default='./data/LBD_CZ_002')
 parser.add_argument('--ngpu',type=int,default=1)
 parser.add_argument('--gpu',type=str,default='0')
 parser.add_argument('--weights',type=str,default='./weights/model.pth') # change 
@@ -59,7 +60,8 @@ logger = create_logger(opt.log_root,name=opt.name,test=True)
 # query_root = f'{opt.folder}/query-tf.pkl'
 # with open(query_root,'rb') as f:
 #     query_data = pickle.load(f,encoding='iso-8859-1')
-gallery_root = f'{opt.folder}/test-tf.pkl'
+#gallery_root = f'{opt.folder}/test-tf.pkl'
+gallery_root = f'{opt.folder}/LBD_CZ_002-tf.pkl'
 # Error warining
 #with open(gallery_root,'rb') as f:
 #   gallery_data = pickle.load(f,encoding='iso-8859-1')
