@@ -15,10 +15,10 @@ import matplotlib.pyplot as plt
 from ptflops import get_model_complexity_info
 from thop import profile
 from torchstat import stat
-# imported to load joblib files
-from joblib import load
+from joblib import load # imported to load joblib files
 from tqdm.auto import tqdm
 from viz import plot_cmc, bar_retrieval_scores, plot_tsne, plot_length_hist, plot_feature_timeseries, save_topk_panel, plot_umap
+from pathlib import Path 
 
 torch._C._jit_set_profiling_mode(False)
 torch._C._jit_set_profiling_executor(False)
@@ -27,10 +27,12 @@ torch.cuda.empty_cache()
 parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size',type=int,default=8)
 parser.add_argument('--num_classes',type=int,default=1731)
+#parser.add_argument('--num_classes',type=int,default=2)
 parser.add_argument('--epoch',type=int,default=80)
 parser.add_argument('--seed',type=int,default=123)
 parser.add_argument('--cuda',type=bool,default=True)
-parser.add_argument('--folder',type=str,default='./data/OLIWER')
+#parser.add_argument('--folder',type=str,default='./data/OLIWER')
+parser.add_argument('--folder',type=str,default='./data/LBD_CZ_002')
 parser.add_argument('--ngpu',type=int,default=1)
 parser.add_argument('--gpu',type=str,default='0')
 parser.add_argument('--weights',type=str,default='./weights/model.pth') # change 
@@ -59,7 +61,8 @@ logger = create_logger(opt.log_root,name=opt.name,test=True)
 # query_root = f'{opt.folder}/query-tf.pkl'
 # with open(query_root,'rb') as f:
 #     query_data = pickle.load(f,encoding='iso-8859-1')
-gallery_root = f'{opt.folder}/test-tf.pkl'
+#gallery_root = f'{opt.folder}/test-tf.pkl'
+gallery_root = f'{opt.folder}/LBD_CZ_002-tf.pkl'
 # Error warining
 #with open(gallery_root,'rb') as f:
 #   gallery_data = pickle.load(f,encoding='iso-8859-1')
@@ -94,7 +97,11 @@ def extract_features(model,data_loader,time_model):
         features_lens = torch.tensor(features_lens).long().to(device)
         user_labels = torch.from_numpy(user_labels).long()
         s = time.time()
-        y_vector = model(x,features_lens)[0]
+        y_vec = model(x,features_lens)[0] # time-functions feature vector
+        #y_prob = model(x,features_lens)[1]
+        f3 = model(x,features_lens)[2] # frequency domain feature vector
+        #y_vector = [*y_vec*f3] # concatenate feature vectors
+        y_vector = torch.cat((y_vec,f3),1) # concatenate feature vectors
         # y_vector = model(x)[0]
         e = time.time()
         time_model += (e - s)
@@ -118,6 +125,44 @@ def transform_user2feat(features,labels):
         user2feat[i] = features[pos]
     return user2feat
 
+def generate_lbd_labels(dataset_root: str):
+    """
+    Scans dataset_root for subfolders like:
+        HC-33#1, HC-34#1, pre-LBD-1#1, ...
+    and assigns:
+        0 → healthy controls (HC-*)
+        1 → pre-LBD patients (pre-LBD-*)
+    
+    Returns:
+        label_dict: { 'HC-33#1': 0, 'pre-LBD-1#1': 1, ... }
+        label_names: list of folder names (writers)
+        labels: list of integer labels [0, 1, ...] aligned with label_names
+    """
+    root = Path(dataset_root)
+    assert root.exists(), f"Path not found: {root}"
+    
+    label_dict = {}
+    label_names = []
+    labels = []
+    
+    for folder in sorted(root.iterdir()):
+        if not folder.is_dir():
+            continue
+        name = folder.name
+        if name.lower().startswith("hc"):
+            label = 0  # healthy control
+        elif name.lower().startswith("pre-lbd"):
+            label = 1  # patient
+        else:
+            print(f"[WARN] Unrecognized folder name: {name}")
+            continue
+        label_dict[name] = label
+        label_names.append(name)
+        labels.append(label)
+    
+    print(f"Found {len(label_dict)} subjects: {sum(v==0 for v in labels)} HC, {sum(v==1 for v in labels)} pre-LBD")
+    return label_dict, label_names, labels
+
 @torch.no_grad()
 def test_impl(model):
     model = model.eval()
@@ -127,6 +172,7 @@ def test_impl(model):
     time_elapsed_start = time.time()
     all_features,all_labels,time_model = extract_features(model,gallery_loader,0)
     user2feat = transform_user2feat(all_features,all_labels)
+#    user2feat = generate_lbd_labels(all_features,all_labels)
     repeat_times = 1
     logger.info(f'repeat times: {repeat_times}')
     gallery_labels,query_labels = [],[]
@@ -214,6 +260,7 @@ def test_impl(model):
 def test():
     load_ckpt(model,opt.weights,device,logger,mode='test')    
     test_impl(model)
+    
 
 def main():
     test()

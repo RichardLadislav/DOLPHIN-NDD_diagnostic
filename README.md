@@ -58,7 +58,10 @@ data-raw
 ├── DCOH-E
 │   ├── dcoh-e313
 │   └── ...
-└── OLHWDB2
+├── OLHWDB2
+│   ├── 001
+│   └── ...
+└── LBD_CZ_002
     ├── 001
     └── ...
 ```
@@ -69,6 +72,7 @@ Then run `preprocess.py` for data preprocessing:
 python preprocess.py --dataset olhwdb2
 python preprocess.py --dataset dcohe
 python preprocess.py --dataset couch
+python preprocess.py --dataset prelbd --joblib
 ```
 
 The preprocessed data will be saved at the `data` folder.
@@ -78,6 +82,7 @@ Then run the `divide.py` to merge the three subsets into the **OLIWER** dataset 
 ```bash
 python divide.py --divide
 python divide.py --extract
+python divide.py --extract_prelbd
 ```
 
 Now the data should be all preprocessed. The final data directory should look like:
@@ -90,6 +95,8 @@ data
 │   └── DCOH-E.pkl
 ├── OLHWDB2
 │   └── OLHWDB2.pkl
+├── LBD_CZ_002
+│   └── LBD_CZ_002.pkl
 └── OLIWER
     ├── split.json
     ├── test.pkl
