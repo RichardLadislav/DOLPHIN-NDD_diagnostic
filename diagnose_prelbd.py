@@ -37,6 +37,24 @@ from scipy.spatial.distance import pdist, squareform
 # -----------------------------
 # Labeling: HC -> 0, pre-LBD -> 1
 # -----------------------------
+# ---- JSON helper: convert numpy types to vanilla Python ----
+def to_serializable(obj):
+    import numpy as np
+    if isinstance(obj, dict):
+        return {k: to_serializable(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [to_serializable(v) for v in obj]
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, (np.integer,)):
+        return int(obj)
+    if isinstance(obj, (np.floating,)):
+        return float(obj)
+    if isinstance(obj, (np.bool_,)):
+        return bool(obj)
+    return obj
+
+
 def label_from_key(k: str) -> int:
     k_low = k.lower()
     if k_low.startswith("hc"):
@@ -342,33 +360,38 @@ def aggregate_by_subject_mean(X, y, subs):
         sg.append(s)
     return np.vstack(Xg), np.array(yg), np.array(sg)
 
-def plot_dendrogram_and_heatmap(X, y, subs, save_prefix):
-    """Hierarchical clustering dendrogram + cosine-similarity heatmap (subject-level recommended)."""
-    _ensure_dir(Path(save_prefix).parent)
-    # Distance: cosine
-    D = squareform(pdist(X, metric="cosine"))
-    Z = linkage(D, method="average")  # average or ward (ward requires Euclidean)
-    # Dendrogram
+def plot_dendrogram_and_heatmap(X, subs, save_prefix):
+    Path(save_prefix).parent.mkdir(parents=True, exist_ok=True)
+
+    # 1) condensed distances for linkage
+    Y = pdist(X, metric="cosine")        # 1-D condensed vector
+    Z = linkage(Y, method="average")     # average linkage on condensed distances
+
+    # 2) dendrogram
     plt.figure(figsize=(12, 5))
     dn = dendrogram(Z, labels=subs.tolist(), leaf_rotation=90, leaf_font_size=8, color_threshold=None)
     plt.title("Hierarchical Clustering (cosine)")
     plt.tight_layout()
     plt.savefig(f"{save_prefix}_dendrogram.png", dpi=200)
     plt.close()
-    # Reorder by dendrogram leaves
+
+    # 3) similarity heatmap, ordered by dendrogram leaves
     order = dn["leaves"]
+    D = squareform(Y)                    # back to square matrix for visualization
     D_ord = D[np.ix_(order, order)]
+    S = 1.0 - D_ord                      # cosine similarity
+
     subs_ord = [subs[i] for i in order]
-    # Heatmap of similarity (1 - distance)
-    S = 1.0 - D_ord
     plt.figure(figsize=(7, 6))
     im = plt.imshow(S, aspect="auto", interpolation="nearest")
     plt.title("Cosine Similarity (ordered by dendrogram)")
     plt.colorbar(im, fraction=0.046, pad=0.04)
-    # Tick fewer labels to keep readable
+
     step = max(1, len(subs_ord)//20)
-    plt.xticks(range(0, len(subs_ord), step), [subs_ord[i] for i in range(0, len(subs_ord), step)], rotation=90, fontsize=7)
-    plt.yticks(range(0, len(subs_ord), step), [subs_ord[i] for i in range(0, len(subs_ord), step)], fontsize=7)
+    plt.xticks(range(0, len(subs_ord), step), [subs_ord[i] for i in range(0, len(subs_ord), step)],
+               rotation=90, fontsize=7)
+    plt.yticks(range(0, len(subs_ord), step), [subs_ord[i] for i in range(0, len(subs_ord), step)],
+               fontsize=7)
     plt.tight_layout()
     plt.savefig(f"{save_prefix}_similarity.png", dpi=200)
     plt.close()
@@ -418,7 +441,7 @@ def make_full_report(
     clf = evaluate_classifier_cv(X_use, y_use, cv=cv, seed=0, C=1.0)
 
     # 3) hierarchical clustering (on subject-level recommended)
-    plot_dendrogram_and_heatmap(X_use, y_use, subs_use, save_prefix=str(outdir / ("hc_subjects" if subject_level else "hc_samples")))
+    plot_dendrogram_and_heatmap(X_use, subs_use, save_prefix=str(outdir / ("hc_subjects" if subject_level else "hc_samples")))
 
     # 4) 2D neighbor-overlap (if 2D projections provided)
     proj = {}
@@ -459,7 +482,7 @@ def make_full_report(
     })
     save_metrics_csv(outdir / "diagnostic_metrics.csv", results)
     with open(outdir / "diagnostic_metrics.json", "w", encoding="utf-8") as f:
-        json.dump(results, f, indent=2)
+        json.dump(to_serializable(results), f, indent=2)
     print("\n[REPORT]")
     print(f"  Points: {results['n_points']} (subject_level={results['subject_level']})")
     print(f"  Silhouette:      {sep['silhouette']:.4f}")
@@ -482,12 +505,15 @@ def main():
     ap.add_argument("--pkl", type=str, required=True, help="Path to PRELBD-tf.pkl (joblib or pickle).")
     ap.add_argument("--cols", type=str, default="0,1,6", help="Indices for (x,y,p), e.g. '0,1,6'.")
     ap.add_argument("--batch", type=int, default=32)
-    ap.add_argument("--aggregate", action="store_true", help="Average embeddings per subject before analysis.")
+    ap.add_argument("--aggregate", action="store_true", help="Average embeddings per subject before plots (tsne/umap).")
+    ap.add_argument("--report_subject_level", action="store_true",
+                    help="Generate the report on subject-level means instead of per-sample.")
     ap.add_argument("--tsne", action="store_true", help="Make a t-SNE plot.")
     ap.add_argument("--umap", action="store_true", help="Make a UMAP plot (requires umap-learn).")
     ap.add_argument("--outdir", type=str, default="./outs_prelbd")
     ap.add_argument("--ckpt", type=str, default=None, help="Optional model checkpoint to load (strict=False).")
     ap.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
+    ap.add_argument("--cv", type=int, default=5, help="Stratified K-fold for the diagnostic classifier in report.")
     args = ap.parse_args()
 
     pkl_path = Path(args.pkl); assert pkl_path.exists(), f"Missing: {pkl_path}"
@@ -501,12 +527,11 @@ def main():
     ds = WritingDiagnostic(data)
     print(f"Subjects (unique): {len(np.unique(ds.subject_ids))} | Samples: {len(ds)} | Label ratio (1's): {ds.labels.mean():.3f}")
 
-    # small subset? (keep all by default)
     loader = DataLoader(ds, batch_size=args.batch, shuffle=False, num_workers=0,
                         collate_fn=lambda b: collate_fn_dolphin(b, cols=cols))
 
     # model
-    num_classes_dummy = 1000  # logits unused; we only use embeddings
+    num_classes_dummy = 1000
     model = DOLPHIN(d_in=3, num_classes=num_classes_dummy)
     if args.ckpt:
         ckpt = torch.load(args.ckpt, map_location=args.device)
@@ -518,26 +543,36 @@ def main():
     # embeddings
     X, y, subs = extract_embeddings(model, loader, device=args.device)
     if args.aggregate:
-        X, y, subs = aggregate_by_subject(X, y, subs, reducer="mean")
-        print(f"[Aggregate] Per subject: {X.shape[0]} vectors")
+        # this aggregation is ONLY for visualization; the report has its own subject_level switch
+        X_vis, y_vis, subs_vis = aggregate_by_subject_mean(X, y, subs)
+        print(f"[Aggregate] Visualization per subject: {X_vis.shape[0]} vectors")
+    else:
+        X_vis, y_vis, subs_vis = X, y, subs
 
     # plots
     if args.tsne:
-        plot_tsne(X, y, save_path=outdir / ("tsne_subjects.png" if args.aggregate else "tsne_samples.png"))
+        plot_tsne(X_vis, y_vis, save_path=outdir / ("tsne_subjects.png" if args.aggregate else "tsne_samples.png"))
     if args.umap:
-        plot_umap(X, y, save_path=outdir / ("umap_subjects.png" if args.aggregate else "umap_samples.png"))
+        plot_umap(X_vis, y_vis, save_path=outdir / ("umap_subjects.png" if args.aggregate else "umap_samples.png"))
 
-    # classification
-    bal_acc, cm, sens, spec = evaluate_classifier(X, y, cv=5, C=1.0, seed=0)
+    # legacy quick classifier on the same representation you plotted
+    bal_acc, cm, sens, spec = evaluate_classifier(X_vis, y_vis, cv=5, C=1.0, seed=0)
     tn, fp, fn, tp = cm.ravel()
-    print("\n=== Diagnostic CV (LogReg, 5-fold, class_weight=balanced) ===")
+    print("\n=== Diagnostic CV on plotted representation ===")
     print(f"Balanced accuracy: {bal_acc*100:.2f}%")
     print(f"Sensitivity (TPR, class=1): {sens*100:.2f}%")
     print(f"Specificity (TNR, class=0): {spec*100:.2f}%")
     print("Confusion matrix [[TN FP][FN TP]]:\n", cm)
-
-    # save metrics
     np.savez(outdir / "metrics.npz", bal_acc=bal_acc, cm=cm, sens=sens, spec=spec)
 
+    # ===== NEW: full report (independent of plotting aggregation) =====
+    make_full_report(
+        X, y, subs,
+        outdir=str(outdir),
+        subject_level=bool(args.report_subject_level),
+        cv=args.cv
+    )
+
 if __name__ == "__main__":
+# call python diagnose_prelbd.py --pkl ./data/LBD_CZ_002/LBD_CZ_002-tf.pkl --batch 1 --report_subject_level --tsne --umap --outdir ./out_prelbd
     main()
