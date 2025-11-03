@@ -5,6 +5,7 @@ import os, argparse, pickle, sys, math
 from pathlib import Path
 
 import numpy as np
+import matplotlib.pyplot as plt
 import torch
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader, Subset
@@ -21,6 +22,18 @@ from sklearn.metrics import confusion_matrix, balanced_accuracy_score
 # --- repo-local imports (ensure your repo root is on PYTHONPATH) ---
 from model import DOLPHIN
 
+# ==== DIAGNOSTIC REPORT TOOLKIT ====
+import os, csv, json
+import numpy as np
+import matplotlib.pyplot as plt
+from pathlib import Path
+from sklearn.metrics import silhouette_score, davies_bouldin_score, calinski_harabasz_score
+from sklearn.model_selection import StratifiedKFold
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import confusion_matrix, balanced_accuracy_score, roc_auc_score
+from sklearn.neighbors import NearestNeighbors
+from scipy.cluster.hierarchy import linkage, dendrogram
+from scipy.spatial.distance import pdist, squareform
 # -----------------------------
 # Labeling: HC -> 0, pre-LBD -> 1
 # -----------------------------
@@ -132,24 +145,90 @@ def aggregate_by_subject(X, y, subjects, reducer="mean"):
 # -----------------------------
 # Visualization
 # -----------------------------
+#def plot_tsne(X, y, save_path=None, perplexity=35, max_points=8000, title="t-SNE of embeddings"):
+    #N = len(X)
+    #idx = np.arange(N)
+    #if max_points and N > max_points:
+        #rng = np.random.default_rng(0); idx = rng.choice(N, size=max_points, replace=False)
+    #Z = TSNE(n_components=2, init="pca", learning_rate="auto",
+             #perplexity=min(perplexity, max(5, len(idx)//3)),
+             #n_iter=1500, random_state=0).fit_transform(X[idx])
+    #import matplotlib.pyplot as plt
+    #plt.figure(figsize=(7,7))
+    #plt.scatter(Z[:,0], Z[:,1], c=y[idx], s=10, alpha=0.9, cmap="coolwarm")
+    #plt.title(title); plt.xlabel("t-SNE 1"); plt.ylabel("t-SNE 2"); plt.tight_layout()
+    #if save_path:
+        #Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+        #plt.savefig(save_path, dpi=200)
+    #else:
+        #plt.show()
+    #plt.close()
+
 def plot_tsne(X, y, save_path=None, perplexity=35, max_points=8000, title="t-SNE of embeddings"):
+    X = np.asarray(X, dtype=np.float64)
+    y = np.asarray(y)
+
+    # 1) sanitize
+    X = np.nan_to_num(X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+    # drop duplicate rows to avoid degenerate distances
+    uniq_idx = np.unique(X, axis=0, return_index=True)[1]
+    X = X[uniq_idx]
+    y = y[uniq_idx]
+
+    # 2) subsample if requested
     N = len(X)
-    idx = np.arange(N)
+    if N == 0:
+        print("[t-SNE] No points to plot.")
+        return
     if max_points and N > max_points:
-        rng = np.random.default_rng(0); idx = rng.choice(N, size=max_points, replace=False)
-    Z = TSNE(n_components=2, init="pca", learning_rate="auto",
-             perplexity=min(perplexity, max(5, len(idx)//3)),
-             n_iter=1500, random_state=0).fit_transform(X[idx])
-    import matplotlib.pyplot as plt
-    plt.figure(figsize=(7,7))
-    plt.scatter(Z[:,0], Z[:,1], c=y[idx], s=10, alpha=0.9, cmap="coolwarm")
-    plt.title(title); plt.xlabel("t-SNE 1"); plt.ylabel("t-SNE 2"); plt.tight_layout()
-    if save_path:
-        Path(save_path).parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(save_path, dpi=200)
-    else:
-        plt.show()
-    plt.close()
+        rng = np.random.default_rng(0)
+        sel = rng.choice(N, size=max_points, replace=False)
+        X = X[sel]; y = y[sel]; N = len(X)
+
+    # 3) choose a safe perplexity
+    # must be < N; rule of thumb: < N/3
+    safe_perp = min(perplexity, max(5, (N // 3) - 1))
+    if safe_perp >= N:
+        safe_perp = max(5, N // 4) if N >= 8 else max(2, N // 2)
+    if N <= 5:
+        print(f"[t-SNE] Too few points (N={N}) for t-SNE; skipping.")
+        return
+
+    # 4) try a few settings gracefully
+    tried = []
+    for metric in ("euclidean", "cosine"):
+        p = safe_perp
+        while p >= 2:
+            try:
+                Z = TSNE(
+                    n_components=2,
+                    init="pca",
+                    learning_rate="auto",
+                    perplexity=p,
+                    metric=metric,
+                    max_iter=1500,
+                    random_state=0,
+                ).fit_transform(X)
+                # success -> plot
+                plt.figure(figsize=(7,7))
+                plt.scatter(Z[:,0], Z[:,1], c=y, s=10, alpha=0.9, cmap="coolwarm")
+                plt.title(f"{title} (perp={p}, metric={metric}, N={N})")
+                plt.xlabel("t-SNE 1"); plt.ylabel("t-SNE 2"); plt.tight_layout()
+                if save_path is not None:
+                    Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+                    plt.savefig(save_path, dpi=200)
+                else:
+                    plt.show()
+                plt.close()
+                return
+            except Exception as e:
+                tried.append((p, metric, str(e)))
+                p = int(p * 0.6)  # shrink and retry
+
+    # If we get here, all attempts failed
+    print("[t-SNE] Failed after attempts:")
+    for p, m, err in tried[-5:]:
+        print(f"  - perp={p}, metric={m}: {err}")
 
 def plot_umap(X, y, save_path=None, n_neighbors=15, min_dist=0.1, max_points=8000, title="UMAP of embeddings"):
     try:
