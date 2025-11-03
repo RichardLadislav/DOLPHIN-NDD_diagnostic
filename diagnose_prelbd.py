@@ -145,24 +145,6 @@ def aggregate_by_subject(X, y, subjects, reducer="mean"):
 # -----------------------------
 # Visualization
 # -----------------------------
-#def plot_tsne(X, y, save_path=None, perplexity=35, max_points=8000, title="t-SNE of embeddings"):
-    #N = len(X)
-    #idx = np.arange(N)
-    #if max_points and N > max_points:
-        #rng = np.random.default_rng(0); idx = rng.choice(N, size=max_points, replace=False)
-    #Z = TSNE(n_components=2, init="pca", learning_rate="auto",
-             #perplexity=min(perplexity, max(5, len(idx)//3)),
-             #n_iter=1500, random_state=0).fit_transform(X[idx])
-    #import matplotlib.pyplot as plt
-    #plt.figure(figsize=(7,7))
-    #plt.scatter(Z[:,0], Z[:,1], c=y[idx], s=10, alpha=0.9, cmap="coolwarm")
-    #plt.title(title); plt.xlabel("t-SNE 1"); plt.ylabel("t-SNE 2"); plt.tight_layout()
-    #if save_path:
-        #Path(save_path).parent.mkdir(parents=True, exist_ok=True)
-        #plt.savefig(save_path, dpi=200)
-    #else:
-        #plt.show()
-    #plt.close()
 
 def plot_tsne(X, y, save_path=None, perplexity=35, max_points=8000, title="t-SNE of embeddings"):
     X = np.asarray(X, dtype=np.float64)
@@ -270,6 +252,227 @@ def evaluate_classifier(X, y, cv=5, C=1.0, seed=0):
     sens = tp / (tp + fn + 1e-9)  # recall for class 1
     spec = tn / (tn + fp + 1e-9)  # recall for class 0
     return bal_acc, cm, sens, spec
+
+# -----------------------------
+# Report toolkit
+# -----------------------------
+
+# ==== DIAGNOSTIC REPORT TOOLKIT ====
+import os, csv, json
+import numpy as np
+import matplotlib.pyplot as plt
+from pathlib import Path
+from sklearn.metrics import silhouette_score, davies_bouldin_score, calinski_harabasz_score
+from sklearn.model_selection import StratifiedKFold
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import confusion_matrix, balanced_accuracy_score, roc_auc_score
+from sklearn.neighbors import NearestNeighbors
+from scipy.cluster.hierarchy import linkage, dendrogram
+from scipy.spatial.distance import pdist, squareform
+
+def _ensure_dir(p): Path(p).mkdir(parents=True, exist_ok=True)
+
+def compute_separability_metrics(X, y):
+    """Returns dict with silhouette, DB, CH for: high-D X and (optionally) 2D embeddings Z if provided later."""
+    X = np.asarray(X, dtype=np.float64)
+    y = np.asarray(y)
+    res = {}
+    # Guard for degenerate cases
+    if len(np.unique(y)) < 2 or len(X) < 5:
+        return {"silhouette": np.nan, "davies_bouldin": np.nan, "calinski_harabasz": np.nan}
+    # Silhouette needs > 1 sample per class; skip if tiny classes
+    try:
+        res["silhouette"] = float(silhouette_score(X, y, metric="euclidean"))
+    except Exception:
+        res["silhouette"] = np.nan
+    try:
+        res["davies_bouldin"] = float(davies_bouldin_score(X, y))
+    except Exception:
+        res["davies_bouldin"] = np.nan
+    try:
+        res["calinski_harabasz"] = float(calinski_harabasz_score(X, y))
+    except Exception:
+        res["calinski_harabasz"] = np.nan
+    return res
+
+def evaluate_classifier_cv(X, y, cv=5, seed=0, C=1.0):
+    """LogReg (balanced), Stratified K-fold. Returns dict with BA, sensitivity, specificity, AUC (if possible), CM."""
+    X = np.asarray(X, dtype=np.float64)
+    y = np.asarray(y).astype(int)
+    skf = StratifiedKFold(n_splits=cv, shuffle=True, random_state=seed)
+    y_true, y_pred, y_prob = [], [], []
+    for tr, te in skf.split(X, y):
+        clf = LogisticRegression(C=C, class_weight="balanced", max_iter=500)
+        clf.fit(X[tr], y[tr])
+        y_hat = clf.predict(X[te])
+        y_true.append(y[te]); y_pred.append(y_hat)
+        # proba only if binary
+        if len(np.unique(y)) == 2 and hasattr(clf, "predict_proba"):
+            y_prob.append(clf.predict_proba(X[te])[:, 1])
+    y_true = np.concatenate(y_true)
+    y_pred = np.concatenate(y_pred)
+    bal_acc = balanced_accuracy_score(y_true, y_pred)
+    cm = confusion_matrix(y_true, y_pred, labels=[0,1])
+    tn, fp, fn, tp = cm.ravel() if cm.size == 4 else (np.nan, np.nan, np.nan, np.nan)
+    sens = tp / (tp + fn + 1e-9) if cm.size == 4 else np.nan
+    spec = tn / (tn + fp + 1e-9) if cm.size == 4 else np.nan
+    auc = np.nan
+    if y_prob:
+        try:
+            auc = roc_auc_score(np.concatenate(y_true if isinstance(y_true, list) else [y_true]),
+                                np.concatenate(y_prob))
+        except Exception:
+            pass
+    return {
+        "balanced_accuracy": float(bal_acc),
+        "sensitivity": float(sens),
+        "specificity": float(spec),
+        "auc": float(auc),
+        "confusion_matrix": cm
+    }
+
+def aggregate_by_subject_mean(X, y, subs):
+    """One vector per subject (mean)."""
+    subs = np.asarray(subs)
+    Xg, yg, sg = [], [], []
+    for s in np.unique(subs):
+        idx = np.where(subs == s)[0]
+        Xg.append(np.mean(X[idx], axis=0))
+        yg.append(int(np.round(np.mean(y[idx]))))  # labels should be consistent per subject
+        sg.append(s)
+    return np.vstack(Xg), np.array(yg), np.array(sg)
+
+def plot_dendrogram_and_heatmap(X, y, subs, save_prefix):
+    """Hierarchical clustering dendrogram + cosine-similarity heatmap (subject-level recommended)."""
+    _ensure_dir(Path(save_prefix).parent)
+    # Distance: cosine
+    D = squareform(pdist(X, metric="cosine"))
+    Z = linkage(D, method="average")  # average or ward (ward requires Euclidean)
+    # Dendrogram
+    plt.figure(figsize=(12, 5))
+    dn = dendrogram(Z, labels=subs.tolist(), leaf_rotation=90, leaf_font_size=8, color_threshold=None)
+    plt.title("Hierarchical Clustering (cosine)")
+    plt.tight_layout()
+    plt.savefig(f"{save_prefix}_dendrogram.png", dpi=200)
+    plt.close()
+    # Reorder by dendrogram leaves
+    order = dn["leaves"]
+    D_ord = D[np.ix_(order, order)]
+    subs_ord = [subs[i] for i in order]
+    # Heatmap of similarity (1 - distance)
+    S = 1.0 - D_ord
+    plt.figure(figsize=(7, 6))
+    im = plt.imshow(S, aspect="auto", interpolation="nearest")
+    plt.title("Cosine Similarity (ordered by dendrogram)")
+    plt.colorbar(im, fraction=0.046, pad=0.04)
+    # Tick fewer labels to keep readable
+    step = max(1, len(subs_ord)//20)
+    plt.xticks(range(0, len(subs_ord), step), [subs_ord[i] for i in range(0, len(subs_ord), step)], rotation=90, fontsize=7)
+    plt.yticks(range(0, len(subs_ord), step), [subs_ord[i] for i in range(0, len(subs_ord), step)], fontsize=7)
+    plt.tight_layout()
+    plt.savefig(f"{save_prefix}_similarity.png", dpi=200)
+    plt.close()
+
+def neighbor_overlap_score(Z2d, y, k=10):
+    """
+    Simple manifold separability sanity: for each point, fraction of k-NN that share the same label.
+    Returns mean overlap in [0,1].
+    """
+    Z2d = np.asarray(Z2d, dtype=np.float64)
+    y = np.asarray(y)
+    if len(Z2d) < k+1:
+        return np.nan
+    nn = NearestNeighbors(n_neighbors=k+1, metric="euclidean").fit(Z2d)
+    idx = nn.kneighbors(return_distance=False)[:, 1:]  # drop self
+    same = (y[idx] == y[:, None]).mean()
+    return float(same)
+
+def save_metrics_csv(path, metrics_dict):
+    _ensure_dir(Path(path).parent)
+    flat = {k:(v.tolist() if isinstance(v, np.ndarray) else v) for k,v in metrics_dict.items()}
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        wr = csv.writer(f)
+        for k,v in flat.items():
+            wr.writerow([k, v])
+
+def make_full_report(
+    X, y, subs,
+    outdir="./outs_prelbd",
+    Z_tsne=None, Z_umap=None,
+    subject_level=True,
+    cv=5,
+):
+    """
+    Generates: separability metrics, LR-CV metrics, dendrogram + similarity heatmap,
+    optional neighbor-overlap metrics on 2D plots, and saves NPZ/CSV/PNGs.
+    """
+    outdir = Path(outdir); _ensure_dir(outdir)
+
+    # 0) (Optional) aggregate per subject for clustering & metrics
+    X_use, y_use, subs_use = (aggregate_by_subject_mean(X, y, subs) if subject_level else (X, y, subs))
+
+    # 1) separability (high-D embeddings)
+    sep = compute_separability_metrics(X_use, y_use)
+
+    # 2) classifier CV (on the same representation)
+    clf = evaluate_classifier_cv(X_use, y_use, cv=cv, seed=0, C=1.0)
+
+    # 3) hierarchical clustering (on subject-level recommended)
+    plot_dendrogram_and_heatmap(X_use, y_use, subs_use, save_prefix=str(outdir / ("hc_subjects" if subject_level else "hc_samples")))
+
+    # 4) 2D neighbor-overlap (if 2D projections provided)
+    proj = {}
+    if Z_tsne is not None and len(Z_tsne) == len(X):
+        Zt_use = aggregate_by_subject_mean(Z_tsne, y, subs)[0] if subject_level else Z_tsne
+        proj["tsne_neighbor_overlap@10"] = neighbor_overlap_score(Zt_use, y_use, k=10)
+        # save fig (optional here; you already plotted elsewhere)
+    if Z_umap is not None and len(Z_umap) == len(X):
+        Zu_use = aggregate_by_subject_mean(Z_umap, y, subs)[0] if subject_level else Z_umap
+        proj["umap_neighbor_overlap@10"] = neighbor_overlap_score(Zu_use, y_use, k=10)
+
+    # 5) persist all metrics
+    results = {
+        "subject_level": subject_level,
+        "n_points": int(len(X_use)),
+        "separability": sep,
+        "classifier": {
+            "balanced_accuracy": clf["balanced_accuracy"],
+            "sensitivity": clf["sensitivity"],
+            "specificity": clf["specificity"],
+            "auc": clf["auc"],
+            "confusion_matrix": clf["confusion_matrix"],
+        },
+        "projection_neighbors": proj,
+    }
+    np.savez(outdir / "diagnostic_metrics.npz", **{
+        "subject_level": subject_level,
+        "n_points": int(len(X_use)),
+        "silhouette": sep["silhouette"],
+        "davies_bouldin": sep["davies_bouldin"],
+        "calinski_harabasz": sep["calinski_harabasz"],
+        "balanced_accuracy": clf["balanced_accuracy"],
+        "sensitivity": clf["sensitivity"],
+        "specificity": clf["specificity"],
+        "auc": clf["auc"],
+        "confusion_matrix": clf["confusion_matrix"],
+        **proj
+    })
+    save_metrics_csv(outdir / "diagnostic_metrics.csv", results)
+    with open(outdir / "diagnostic_metrics.json", "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=2)
+    print("\n[REPORT]")
+    print(f"  Points: {results['n_points']} (subject_level={results['subject_level']})")
+    print(f"  Silhouette:      {sep['silhouette']:.4f}")
+    print(f"  Davies-Bouldin:  {sep['davies_bouldin']:.4f}  (lower is better)")
+    print(f"  Calinski-Harab.: {sep['calinski_harabasz']:.2f} (higher is better)")
+    print(f"  Balanced Acc.:   {clf['balanced_accuracy']*100:.2f}%")
+    print(f"  Sensitivity:     {clf['sensitivity']*100:.2f}%")
+    print(f"  Specificity:     {clf['specificity']*100:.2f}%")
+    if "tsne_neighbor_overlap@10" in proj:
+        print(f"  t-SNE neighbor overlap@10:  {proj['tsne_neighbor_overlap@10']:.3f}")
+    if "umap_neighbor_overlap@10" in proj:
+        print(f"  UMAP neighbor overlap@10:   {proj['umap_neighbor_overlap@10']:.3f}")
+    print(f"  Saved: {outdir}/diagnostic_metrics.(npz|csv|json), dendrogram & heatmap PNGs")
 
 # -----------------------------
 # Main
