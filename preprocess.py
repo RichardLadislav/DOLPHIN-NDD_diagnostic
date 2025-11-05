@@ -199,13 +199,50 @@ def preprocess_PRELBD(
     total = sum(len(v) for v in writing.values())
     print(f"[LBD_CZ_002] writers: {len(writing)} | samples: {total} | saved → {out_path}")
 
+def preprocess_PRELBD_tas_wise(
+    interp: int | None = 4,
+    use_joblib: bool = False,
+    keep_cols=(0, 1, 6),
+    min_samples_per_writer: int = 0,
+):
+    """
+    Build a single pickle for PRELBD:
+      { writer_id(str): [ np.ndarray(T,3)[x,y,p], ... ], ... }
 
+    - Reads .svc files under writer subfolders in src_root
+    - Keeps ONLY columns (0,1,6) as (x,y,p)
+    - Applies centernorm_size + optional interpolate_torch
+    - Writes LBD_CZ_002.pkl under tgt_root
+    """
+    srcs = ['./data-raw/LBD_CZ_002_raw_tasks/1_1',
+            './data-raw/LBD_CZ_002_raw_tasks/3_1',
+            './data-raw/LBD_CZ_002_raw_tasks/3_2',
+            './data-raw/LBD_CZ_002_raw_tasks/3_3',
+            './data-raw/LBD_CZ_002_raw_tasks/3_4',
+            './data-raw/LBD_CZ_002_raw_tasks/3_5',
+            './data-raw/LBD_CZ_002_raw_tasks/9_1',
+            './data-raw/LBD_CZ_002_raw_tasks/10_1',
+            './data-raw/LBD_CZ_002_raw_tasks/15_1',
+            './data-raw/LBD_CZ_002_raw_tasks/16_1',
+            './data-raw/LBD_CZ_002_raw_tasks/17_1',
+            './data-raw/LBD_CZ_002_raw_tasks/18_1',
+            './data-raw/LBD_CZ_002_raw_tasks/19_1'
+              ]
+    for src_root in srcs:
+        preprocess_PRELBD(
+            src_root=src_root,
+            tgt_root=src_root.replace('data-raw','data'),    
+            interp=interp,
+            use_joblib=use_joblib,
+            keep_cols=keep_cols,    
+            min_samples_per_writer=min_samples_per_writer,
+        )
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--dataset',
         type=str,
-        default='prelbd',
+        default='prelbd_task_wise',
         help='Processed dataset names: [olhwdb2, dcohe, couch, prelbd]'
     )
     parser.add_argument(
@@ -234,6 +271,12 @@ if __name__ == '__main__':
         preprocess_PRELBD(
             src_root='./data-raw/LBD_CZ_002',
             tgt_root='./data/LBD_CZ_002',
+            interp=opt.interp,
+            use_joblib=opt.joblib,
+            keep_cols=(0,1,6)
+        )
+    elif ds == 'prelbd_task_wise':
+        preprocess_PRELBD_tas_wise(
             interp=opt.interp,
             use_joblib=opt.joblib,
             keep_cols=(0,1,6)

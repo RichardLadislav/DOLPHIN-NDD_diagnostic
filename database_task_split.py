@@ -1,27 +1,29 @@
-# split_prelbd_raw_into_tasks.py
-# Minimal splitter: copy .svc files into 13 task folders by parsing "..._<task>.svc" (e.g., "..._17_1.svc").
-# Keeps raw files untouched. Creates out_root/<task>/<subject>/file.svc
+# -*- coding: utf-8 -*-
+"""
+Split raw PRELBD .svc data into 13 task-wise raw databases (by copying files).
+Creates subfolders: out_root/<task>/<subject>/<filename>.svc
+Logs skipped or unrecognized files to 'unrecognized_tasks.log'.
+"""
 
-import re, shutil
+import re
+import shutil
 from pathlib import Path
 import argparse
 from collections import defaultdict
 
-# Default 13 tasks (adjust if needed)
+# Default 13 tasks
 DEFAULT_TASKS = [
-    "1_1", "3_1", "3_2", "3_3", "3_4", "3_5", "9_1", "15_1", "16_1", "17_1", "18_1", "19_1",
+    "1_1", "3_1", "3_2", "3_3", "3_4", "3_5", "9_1", "10_1", "15_1", "16_1", "17_1", "18_1", "19_1"
 ]
 
-# Regex: capture the trailing "<number>_<number>" right before the extension
+# Detect trailing "<num>_<num>" before extension, e.g. "_17_1.svc"
 TASK_RE = re.compile(r'(\d{1,2}_\d+)(?=\.[A-Za-z0-9]+$)')
 
 def parse_task(name: str) -> str | None:
-    """
-    Extract a task token like '17_1' from a filename ending with '_17_1.svc'.
-    Returns None if no match.
-    """
+    """Extract task token like '17_1' from filename ending with '_17_1.svc'."""
     m = TASK_RE.search(name)
     return m.group(1) if m else None
+
 
 def split_into_tasks(src_root: str, out_root: str, tasks: list[str]):
     src = Path(src_root)
@@ -31,40 +33,61 @@ def split_into_tasks(src_root: str, out_root: str, tasks: list[str]):
     out.mkdir(parents=True, exist_ok=True)
 
     stats = defaultdict(int)
-    skipped = 0
+    skipped_files = []  # store (subject, filename, reason)
 
-    # iterate subjects (folders) and their .svc files
+    print(f"[SCAN] {src}")
+
     for subj_dir in sorted([d for d in src.iterdir() if d.is_dir()]):
-        subject = subj_dir.name  # e.g., "HC-33#1", "pre-LBD-7#1"
+        subject = subj_dir.name
         for f in sorted(subj_dir.rglob("*.svc")):
             task = parse_task(f.name)
-            if task is None or task not in tasks:
-                skipped += 1
+            if task is None:
+                skipped_files.append((subject, f.name, "no task pattern"))
+                continue
+            if task not in tasks:
+                skipped_files.append((subject, f.name, f"unknown task '{task}'"))
                 continue
 
-            # target: out_root/<task>/<subject>/<filename>
+            # Create destination folder and copy
             dest_dir = out / task / subject
             dest_dir.mkdir(parents=True, exist_ok=True)
             shutil.copy2(f, dest_dir / f.name)
             stats[task] += 1
 
-    # summary
-    print("\n=== Done ===")
-    print(f"Output root: {out.resolve()}")
+    # Summary
+    print("\n=== Task Split Summary ===")
     for t in tasks:
-        print(f"  {t}: {stats[t]} files")
-    print(f"Skipped (task not recognized/not in target set): {skipped} files")
+        print(f"  {t:>4}: {stats[t]} files")
+    print(f"  Skipped: {len(skipped_files)} files (logged below)\n")
+
+    # Write log
+    log_path = out / "unrecognized_tasks.log"
+    if skipped_files:
+        with log_path.open("w", encoding="utf-8") as log:
+            log.write(f"# Unrecognized or skipped .svc files from {src_root}\n")
+            log.write(f"# Total: {len(skipped_files)}\n\n")
+            for subj, fname, reason in skipped_files:
+                log.write(f"{subj}/{fname}  <-- {reason}\n")
+        print(f"[LOG] {len(skipped_files)} unrecognized files → {log_path}")
+    else:
+        print("[LOG] All files matched tasks; no unrecognized entries.")
+
+    print(f"[DONE] Output written to {out.resolve()}")
+
 
 def main():
-    ap = argparse.ArgumentParser(description="Split raw PRELBD .svc data into 13 task-wise raw databases (by copy).")
+    ap = argparse.ArgumentParser(
+        description="Split raw PRELBD .svc data into 13 task-wise raw databases (by copying)."
+    )
     ap.add_argument("--src_root", type=str, required=True, help="Path to raw root (e.g., ./data-raw/LBD_CZ_002)")
     ap.add_argument("--out_root", type=str, required=True, help="Where to write task-wise raw folders")
     ap.add_argument("--tasks", type=str, default=",".join(DEFAULT_TASKS),
-                    help="Comma-separated task list (e.g., '1_1,3_1,3_2,...').")
+                    help="Comma-separated task list (default = 13 PRELBD tasks)")
     args = ap.parse_args()
 
     tasks = [t.strip() for t in args.tasks.split(",") if t.strip()]
     split_into_tasks(args.src_root, args.out_root, tasks)
+
 
 if __name__ == "__main__":
     main()
