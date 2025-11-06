@@ -1,3 +1,4 @@
+
 # diagnose_prelbd.py
 # -*- coding: utf-8 -*-
 
@@ -496,76 +497,63 @@ def make_full_report(
     if "umap_neighbor_overlap@10" in proj:
         print(f"  UMAP neighbor overlap@10:   {proj['umap_neighbor_overlap@10']:.3f}")
     print(f"  Saved: {outdir}/diagnostic_metrics.(npz|csv|json), dendrogram & heatmap PNGs")
+def process_one_pkl(pkl_path: Path, args):
+    """
+    Run the full pipeline for a single task pickle and write results to
+    <args.outdir>/<task_name>/...
+    """
+    task_name = pkl_path.parent.name  # e.g., "3_2"
+    outdir = Path(args.outdir) / task_name
+    outdir.mkdir(parents=True, exist_ok=True)
 
-# -----------------------------
-# Main
-# -----------------------------
-def main():
-    ap = argparse.ArgumentParser(description="DOLPHIN → diagnostic embeddings → t-SNE/UMAP + LR CV")
-    ap.add_argument("--pkl", type=str, required=True, help="Path to PRELBD-tf.pkl (joblib or pickle).")
-    ap.add_argument("--cols", type=str, default="0,1,6", help="Indices for (x,y,p), e.g. '0,1,6'.")
-    ap.add_argument("--batch", type=int, default=32)
-    ap.add_argument("--aggregate", action="store_true", help="Average embeddings per subject before plots (tsne/umap).")
-    ap.add_argument("--report_subject_level", action="store_true",
-                    help="Generate the report on subject-level means instead of per-sample.")
-    ap.add_argument("--tsne", action="store_true", help="Make a t-SNE plot.")
-    ap.add_argument("--umap", action="store_true", help="Make a UMAP plot (requires umap-learn).")
-    ap.add_argument("--outdir", type=str, default="./outs_prelbd")
-    ap.add_argument("--ckpt", type=str, default=None, help="Optional model checkpoint to load (strict=False).")
-    ap.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
-    ap.add_argument("--cv", type=int, default=5, help="Stratified K-fold for the diagnostic classifier in report.")
-    args = ap.parse_args()
-
-    pkl_path = Path(args.pkl); assert pkl_path.exists(), f"Missing: {pkl_path}"
-    cols = tuple(int(x) for x in args.cols.split(","))
-    outdir = Path(args.outdir); outdir.mkdir(parents=True, exist_ok=True)
-
-    print(f"[Load] {pkl_path}")
+    print(f"\n[Task] {task_name}  |  PKL: {pkl_path}")
     data = load_any_pkl(pkl_path)
 
     # dataset & loader
+    cols = tuple(int(x) for x in args.cols.split(","))
     ds = WritingDiagnostic(data)
-    print(f"Subjects (unique): {len(np.unique(ds.subject_ids))} | Samples: {len(ds)} | Label ratio (1's): {ds.labels.mean():.3f}")
+    print(f"  Subjects: {len(np.unique(ds.subject_ids))} | Samples: {len(ds)} | Label ratio(1): {ds.labels.mean():.3f}")
 
-    loader = DataLoader(ds, batch_size=args.batch, shuffle=False, num_workers=0,
-                        collate_fn=lambda b: collate_fn_dolphin(b, cols=cols))
+    loader = DataLoader(
+        ds,
+        batch_size=args.batch,
+        shuffle=False,
+        num_workers=0,
+        collate_fn=lambda b: collate_fn_dolphin(b, cols=cols)
+    )
 
-    # model
+    # model (embeddings only; logits unused)
     num_classes_dummy = 1000
     model = DOLPHIN(d_in=3, num_classes=num_classes_dummy)
     if args.ckpt:
         ckpt = torch.load(args.ckpt, map_location=args.device)
         state = ckpt.get("model", ckpt)
         model.load_state_dict(state, strict=False)
-        print("[Model] Loaded checkpoint with strict=False")
+        print("  [Model] Loaded checkpoint with strict=False")
     model = model.to(args.device).eval()
 
     # embeddings
     X, y, subs = extract_embeddings(model, loader, device=args.device)
+
+    # optional aggregation ONLY for visualization plots here
     if args.aggregate:
-        # this aggregation is ONLY for visualization; the report has its own subject_level switch
         X_vis, y_vis, subs_vis = aggregate_by_subject_mean(X, y, subs)
-        print(f"[Aggregate] Visualization per subject: {X_vis.shape[0]} vectors")
+        print(f"  [Aggregate-plot] Per subject vectors: {X_vis.shape[0]}")
     else:
         X_vis, y_vis, subs_vis = X, y, subs
 
-    # plots
+    # plots (saved inside this task's subdir)
     if args.tsne:
         plot_tsne(X_vis, y_vis, save_path=outdir / ("tsne_subjects.png" if args.aggregate else "tsne_samples.png"))
     if args.umap:
         plot_umap(X_vis, y_vis, save_path=outdir / ("umap_subjects.png" if args.aggregate else "umap_samples.png"))
 
-    # legacy quick classifier on the same representation you plotted
+    # quick classifier on the plotted representation (legacy preview)
     bal_acc, cm, sens, spec = evaluate_classifier(X_vis, y_vis, cv=5, C=1.0, seed=0)
-    tn, fp, fn, tp = cm.ravel()
-    print("\n=== Diagnostic CV on plotted representation ===")
-    print(f"Balanced accuracy: {bal_acc*100:.2f}%")
-    print(f"Sensitivity (TPR, class=1): {sens*100:.2f}%")
-    print(f"Specificity (TNR, class=0): {spec*100:.2f}%")
-    print("Confusion matrix [[TN FP][FN TP]]:\n", cm)
-    np.savez(outdir / "metrics.npz", bal_acc=bal_acc, cm=cm, sens=sens, spec=spec)
+    np.savez(outdir / "metrics_preview.npz", bal_acc=bal_acc, cm=cm, sens=sens, spec=spec)
+    print(f"  [Preview CV] BA={bal_acc*100:.2f}%  Sens={sens*100:.2f}%  Spec={spec*100:.2f}%")
 
-    # ===== NEW: full report (independent of plotting aggregation) =====
+    # full report (independent of plot aggregation)
     make_full_report(
         X, y, subs,
         outdir=str(outdir),
@@ -573,6 +561,47 @@ def main():
         cv=args.cv
     )
 
+
+# -----------------------------
+# Main
+# -----------------------------
+def main():
+    ap = argparse.ArgumentParser(description="DOLPHIN → diagnostic embeddings → t-SNE/UMAP + LR CV")
+
+    # EITHER point to a single pickle...
+    ap.add_argument("--pkl", type=str, help="Path to a single PRELBD *-tf.pkl (joblib or pickle).")
+    # ...OR a root folder containing many task pickles
+    ap.add_argument("--pkl_root", type=str,
+                    help="Root directory to auto-discover task pickles (searches for **/*-tf.pkl).")
+
+    ap.add_argument("--cols", type=str, default="0,1,6", help="Indices for (x,y,p), e.g. '0,1,6'.")
+    ap.add_argument("--batch", type=int, default=32)
+    ap.add_argument("--aggregate", action="store_true", help="Average embeddings per subject before plots (tsne/umap).")
+    ap.add_argument("--report_subject_level", action="store_true",
+                    help="Generate the report on subject-level means instead of per-sample.")
+    ap.add_argument("--tsne", action="store_true", help="Make a t-SNE plot.")
+    ap.add_argument("--umap", action="store_true", help="Make a UMAP plot (requires umap-learn).")
+    ap.add_argument("--outdir", type=str, default="./outs_prelbd_tasks",
+                    help="Base output directory (per-task subfolders will be created when using --pkl_root).")
+    ap.add_argument("--ckpt", type=str, default=None, help="Optional model checkpoint to load (strict=False).")
+    ap.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
+    ap.add_argument("--cv", type=int, default=5, help="Stratified K-fold for the diagnostic classifier in report.")
+    args = ap.parse_args()
+
+    if args.pkl_root:
+        root = Path(args.pkl_root); assert root.exists(), f"Missing pkl_root: {root}"
+        # discover all *-tf.pkl under pkl_root
+        pkls = sorted(root.rglob("*-tf.pkl"))
+        if not pkls:
+            raise FileNotFoundError(f"No *-tf.pkl files found under {root}")
+        print(f"[Batch] Found {len(pkls)} task pickles under {root}")
+        for p in pkls:
+            process_one_pkl(p, args)
+    else:
+        # fall back to single-file mode (old behavior)
+        if not args.pkl:
+            raise SystemExit("Provide either --pkl <file> or --pkl_root <dir>.")
+        pkl_path = Path(args.pkl); assert pkl_path.exists(), f"Missing: {pkl_path}"
+        process_one_pkl(pkl_path, args)
 if __name__ == "__main__":
-# call python diagnose_prelbd.py --pkl ./data/LBD_CZ_002/LBD_CZ_002-tf.pkl --batch 1 --report_subject_level --tsne --umap --outdir ./out_prelbd
     main()

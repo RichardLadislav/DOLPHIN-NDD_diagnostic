@@ -1,6 +1,6 @@
 subject_level,True
-n_points,142
-separability,"{'silhouette': 0.05064320025492069, 'davies_bouldin': 7.861664348345906, 'calinski_harabasz': 1.5334197381691546}"
-classifier,"{'balanced_accuracy': 0.5332221295524048, 'sensitivity': 0.6422018348564935, 'specificity': 0.4242424242295685, 'auc': 0.5535168195718655, 'confusion_matrix': array([[14, 19],
-       [39, 70]], dtype=int64)}"
+n_points,147
+separability,"{'silhouette': 0.010723309798743334, 'davies_bouldin': 14.7006072258098, 'calinski_harabasz': 0.39914323632320003}"
+classifier,"{'balanced_accuracy': 0.5075757575757576, 'sensitivity': 0.499999999995614, 'specificity': 0.5151515151359045, 'auc': 0.4609250398724083, 'confusion_matrix': array([[17, 16],
+       [57, 57]], dtype=int64)}"
 projection_neighbors,{}
