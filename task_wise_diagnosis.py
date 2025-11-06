@@ -150,8 +150,12 @@ def extract_embeddings(model, loader, device="cpu"):
         y_vec, _, f3 = model(xs, lens)         # y_vec: (B,384), f3: (B,384)
         y_vec = F.normalize(y_vec, dim=1)
         f3    = F.normalize(f3, dim=1)
-        emb   = torch.cat([y_vec, f3], dim=1).cpu().numpy()  # (B,768)
+        #emb   = torch.cat([y_vec, f3], dim=1).cpu().numpy()  # (B,768)
+        emb   = torch.cat([f3], dim=1).cpu().numpy()  # (B,768)
+        #emb   = torch.cat([y_vec], dim=1).cpu().numpy()  # (B,768)
         feats.append(emb); labels.append(ys.numpy()); subjects.extend(subs)
+        #feats.append(y_vec); labels.append(ys.numpy()); subjects.extend(subs)
+        #feats.append(f3); labels.append(ys.numpy()); subjects.extend(subs)
     X = np.vstack(feats)
     y = np.concatenate(labels)
     X = normalize(X, norm="l2", axis=1)
@@ -604,4 +608,5 @@ def main():
         pkl_path = Path(args.pkl); assert pkl_path.exists(), f"Missing: {pkl_path}"
         process_one_pkl(pkl_path, args)
 if __name__ == "__main__":
+    # to call python task_wise_diagnosis.py --pkl_root ./data-tf/LBD_CZ_002_raw_tasks --batch 1 --report_subject_level --tsne --umap --outdir ./out_prelbd_task_wise
     main()
