@@ -329,6 +329,54 @@ def extract_and_store_PRELBD(src_path="./data/LBD_CZ_002/LBD_CZ_002.pkl",
     else:
         print("[extract_and_store_PRELBD] Completed successfully with no failed writers.")
 
+@clock
+def extract_and_store_PRELBD_prelbd( compress=("lz4", 3),
+                              progress=True,
+                              gc_every=50,
+                              p_col=None):
+    srcs = [
+            './data/LBD_CZ_002_raw_tasks/1_1/LBD_CZ_002.pkl',
+            './data/LBD_CZ_002_raw_tasks/3_1/LBD_CZ_002.pkl',
+            './data/LBD_CZ_002_raw_tasks/3_2/LBD_CZ_002.pkl',
+            './data/LBD_CZ_002_raw_tasks/3_3/LBD_CZ_002.pkl',
+            './data/LBD_CZ_002_raw_tasks/3_4/LBD_CZ_002.pkl',
+            './data/LBD_CZ_002_raw_tasks/3_5/LBD_CZ_002.pkl',
+            './data/LBD_CZ_002_raw_tasks/9_1/LBD_CZ_002.pkl',
+            './data/LBD_CZ_002_raw_tasks/10_1/LBD_CZ_002.pkl',
+            './data/LBD_CZ_002_raw_tasks/15_1/LBD_CZ_002.pkl',
+            './data/LBD_CZ_002_raw_tasks/16_1/LBD_CZ_002.pkl',
+            './data/LBD_CZ_002_raw_tasks/17_1/LBD_CZ_002.pkl',
+            './data/LBD_CZ_002_raw_tasks/18_1/LBD_CZ_002.pkl',
+            './data/LBD_CZ_002_raw_tasks/19_1/LBD_CZ_002.pkl'
+              ]
+    for src_path in srcs:
+        src = Path(src_path)
+        # derive task name from folder, e.g. "3_2"
+        task_name = src.parent.name
+        # build target file path cleanly
+        tgt_dir = Path(str(src.parent).replace("data", "data-tf"))
+        tgt_dir.mkdir(parents=True, exist_ok=True)
+        tgt_path = tgt_dir / f"{task_name}-tf.pkl"
+
+        print(f"\n[Task {task_name}] Extracting → {tgt_path}")
+
+        extract_and_store_PRELBD(
+            src_path=str(src),
+            tgt_path=str(tgt_path),
+            compress=compress,
+            progress=progress,
+            gc_every=gc_every,
+            p_col=p_col
+        )
+#    for src_path in srcs:
+#        extract_and_store_PRELBD(
+#            src_path=src_path,
+#            tgt_path="./data/LBD_CZ_002/LBD_CZ_002-tf.pkl",
+#            compress=compress,
+#            progress=progress,
+#            gc_every=gc_every,
+#            p_col=p_col
+#        )
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--divide', action='store_true',
@@ -354,7 +402,8 @@ def main():
                         help="Output path for LBD_CZ_002 time-functions pickle.")
     parser.add_argument('--p_col', type=int, default=None,
                         help="Pressure column index in LBD_CZ_002pkl if not already at index 2 (e.g., 6).")
-
+    parser.add_argument('--extract_prelbd_task_wise', action='store_true',
+                        help="Extract time-functions for LBD_CZ_002 tas-wise only (no merging with OLIWER).")
     args = parser.parse_args()
 
     compress = None if args.no_compress else ('lz4', 3)
@@ -379,7 +428,13 @@ def main():
             gc_every=args.gc_every,
             p_col=args.p_col  # set to 6 if your PRELBD has p at column 6
         )
-
+    if  args.extract_prelbd_task_wise:
+        extract_and_store_PRELBD_prelbd(
+            compress=compress,
+            progress=True,
+            gc_every=args.gc_every,
+            p_col=args.p_col  # set to 6 if your PRELBD has p at column 6
+        )
 
 if __name__ == '__main__':
     main()

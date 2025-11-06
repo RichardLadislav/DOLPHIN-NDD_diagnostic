@@ -1,0 +1,34 @@
+[2025-11-03 14:47:53 DOLPHIN] (test.py 90): INFO 
+gallery root: ./data/LBD_CZ_002/LBD_CZ_002-tf.pkl
+gallery loader length: 239 gallery features length: 1911
+model: DOLPHIN
+DBA & AQE: False
+Rerank: False
+[2025-11-03 14:47:54 DOLPHIN] (utils.py 183): INFO mode: "test" weights/model.pth successfully loaded.
+[2025-11-03 14:49:08 DOLPHIN] (test.py 177): INFO repeat times: 1
+[2025-11-03 14:49:08 DOLPHIN] (test.py 208): INFO [final] Rank@1: 25.1701% (0.0000%) Rank@5: 37.4150% (0.0000%) Rank@10: 39.4558% (0.0000%)
+[2025-11-03 14:49:08 DOLPHIN] (test.py 210): INFO [final] mAP: 4.6683% (0.0000%)
+[2025-11-03 14:49:08 DOLPHIN] (test.py 211): INFO time elapsed: 74.58694s
+
+[2025-11-03 14:50:56 DOLPHIN] (test.py 90): INFO 
+gallery root: ./data/LBD_CZ_002/LBD_CZ_002-tf.pkl
+gallery loader length: 239 gallery features length: 1911
+model: DOLPHIN
+DBA & AQE: False
+Rerank: False
+[2025-11-03 14:50:57 DOLPHIN] (utils.py 183): INFO mode: "test" ./weights/model.pth successfully loaded.
+[2025-11-03 14:56:16 DOLPHIN] (test.py 90): INFO 
+gallery root: ./data/LBD_CZ_002/LBD_CZ_002-tf.pkl
+gallery loader length: 239 gallery features length: 1911
+model: DOLPHIN
+DBA & AQE: False
+Rerank: False
+[2025-11-03 14:56:18 DOLPHIN] (utils.py 183): INFO mode: "test" ./weights/model.pth successfully loaded.
+[2025-11-03 14:57:45 DOLPHIN] (test.py 178): INFO repeat times: 1
+[2025-11-03 14:59:19 DOLPHIN] (test.py 90): INFO 
+gallery root: ./data/LBD_CZ_002/LBD_CZ_002-tf.pkl
+gallery loader length: 239 gallery features length: 1911
+model: DOLPHIN
+DBA & AQE: False
+Rerank: False
+[2025-11-03 14:59:20 DOLPHIN] (utils.py 183): INFO mode: "test" ./weights/model.pth successfully loaded.

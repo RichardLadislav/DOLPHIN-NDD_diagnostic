@@ -171,6 +171,7 @@ def test_impl(model):
     
     time_elapsed_start = time.time()
     all_features,all_labels,time_model = extract_features(model,gallery_loader,0)
+    all_labels = generate_lbd_labels(opt.folder)[2]
     user2feat = transform_user2feat(all_features,all_labels)
 #    user2feat = generate_lbd_labels(all_features,all_labels)
     repeat_times = 1

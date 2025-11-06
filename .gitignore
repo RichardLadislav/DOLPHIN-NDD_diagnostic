@@ -163,6 +163,12 @@ output/
 *zip
 handcrafted_features_LBD_CZ_002.csv
 hf_analysis_refactor - kopie.ipynb
+out_prelbd_task_wise/
+
+out_prelbd/
+
+
+
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore

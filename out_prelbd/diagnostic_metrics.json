@@ -1,0 +1,26 @@
+{
+  "subject_level": true,
+  "n_points": 147,
+  "separability": {
+    "silhouette": 0.010723309798743334,
+    "davies_bouldin": 14.7006072258098,
+    "calinski_harabasz": 0.39914323632320003
+  },
+  "classifier": {
+    "balanced_accuracy": 0.5075757575757576,
+    "sensitivity": 0.499999999995614,
+    "specificity": 0.5151515151359045,
+    "auc": 0.4609250398724083,
+    "confusion_matrix": [
+      [
+        17,
+        16
+      ],
+      [
+        57,
+        57
+      ]
+    ]
+  },
+  "projection_neighbors": {}
+}
