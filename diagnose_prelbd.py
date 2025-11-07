@@ -151,7 +151,7 @@ def extract_embeddings(model, loader, device="cpu"):
         f3    = F.normalize(f3, dim=1)
 #        emb   = torch.cat([y_vec, f3], dim=1).cpu().numpy()  # (B,768)
 #        emb   = torch.cat([y_vec], dim=1).cpu().numpy()   (B,384)
-        emb    torch.cat([f3], dim=1).cpu().numpy()   (B,768)
+        emb = torch.cat([f3], dim=1).cpu().numpy()   (B,768)
         feats.append(emb); labels.append(ys.numpy()); subjects.extend(subs)
     X = np.vstack(feats)
     y = np.concatenate(labels)
@@ -561,7 +561,6 @@ def main():
     ap.add_argument("--ckpt", type=str, default=None, help="Optional model checkpoint to load (strict=False).")
     ap.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--cv", type=int, default=5, help="Stratified K-fold for the diagnostic classifier in report.")
-    
     ap.add_argument("--save_embeddings", action="store_true", help="Dump extracted embeddings to disk for downstream classifiers.")
     ap.add_argument("--emb_format", type=str, default="npz", help="Embeddings format: 'npz' (recommended) or 'csv'.")
     ap.add_argument("--emb_dir", type=str, default=None, help="Directory to save embeddings. Default: <outdir>/<task>/")
@@ -576,7 +575,7 @@ def main():
     print(f"[Load] {pkl_path}")
     data = load_any_pkl(pkl_path)
 
-    # dataset & loader
+    # dataset & loade
     ds = WritingDiagnostic(data)
     print(f"Subjects (unique): {len(np.unique(ds.subject_ids))} | Samples: {len(ds)} | Label ratio (1's): {ds.labels.mean():.3f}")
 

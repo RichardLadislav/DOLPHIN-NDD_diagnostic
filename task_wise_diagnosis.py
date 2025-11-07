@@ -423,6 +423,48 @@ def save_metrics_csv(path, metrics_dict):
         for k,v in flat.items():
             wr.writerow([k, v])
 
+def save_embeddings(X: np.ndarray,
+                    y: np.ndarray,
+                    subs: np.ndarray,
+                    out_path: Path,
+                    fmt: str = "npz",
+                    header_prefix: str = "f"):
+    """
+    Save embeddings for downstream classifiers.
+
+    Args:
+        X: (N, D) embeddings
+        y: (N,) integer labels (0/1)
+        subs: (N,) subject ids (strings)
+        out_path: full path incl. filename (extension ignored; 'fmt' is used)
+        fmt: 'npz' or 'csv'
+        header_prefix: column prefix for CSV feature columns
+    """
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if fmt.lower() == "npz":
+        # Fast, binary – perfect for sklearn: np.load(...); X=..., y=..., subs=...
+        np.savez(out_path.with_suffix(".npz"), X=X, y=y, subs=subs)
+        print(f"[SAVE] Embeddings (NPZ): {out_path.with_suffix('.npz')}")
+        return
+
+    if fmt.lower() == "csv":
+        # Wide CSV: subject,label,f0,...,f{D-1}
+        D = X.shape[1]
+        headers = ["subject", "label"] + [f"{header_prefix}{i}" for i in range(D)]
+        csv_path = out_path.with_suffix(".csv")
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
+            import csv as _csv
+            wr = _csv.writer(f)
+            wr.writerow(headers)
+            for s, yi, row in zip(subs, y, X):
+                wr.writerow([s, int(yi)] + [float(v) for v in row.tolist()])
+        print(f"[SAVE] Embeddings (CSV): {csv_path}")
+        return
+
+    raise ValueError(f"Unsupported fmt: {fmt} (use 'npz' or 'csv')")
+
 def make_full_report(
     X, y, subs,
     outdir="./outs_prelbd",
@@ -501,6 +543,7 @@ def make_full_report(
     if "umap_neighbor_overlap@10" in proj:
         print(f"  UMAP neighbor overlap@10:   {proj['umap_neighbor_overlap@10']:.3f}")
     print(f"  Saved: {outdir}/diagnostic_metrics.(npz|csv|json), dendrogram & heatmap PNGs")
+
 def process_one_pkl(pkl_path: Path, args):
     """
     Run the full pipeline for a single task pickle and write results to
@@ -565,6 +608,16 @@ def process_one_pkl(pkl_path: Path, args):
         cv=args.cv
     )
 
+    if args.save_embeddings:
+        base_dir = Path(args.emb_dir) if args.emb_dir else outdir
+        base_dir.mkdir(parents=True, exist_ok=True)
+        # per-sample
+        save_embeddings(X, y, subs, base_dir / "embeddings_samples", fmt=args.emb_format)
+
+        # optional per-subject aggregate export
+        if args.aggregate_export:
+            Xg, yg, sg = aggregate_by_subject_mean(X, y, subs)
+            save_embeddings(Xg, yg, sg, base_dir / "embeddings_subjects_mean", fmt=args.emb_format)
 
 # -----------------------------
 # Main
@@ -575,21 +628,25 @@ def main():
     # EITHER point to a single pickle...
     ap.add_argument("--pkl", type=str, help="Path to a single PRELBD *-tf.pkl (joblib or pickle).")
     # ...OR a root folder containing many task pickles
-    ap.add_argument("--pkl_root", type=str,
-                    help="Root directory to auto-discover task pickles (searches for **/*-tf.pkl).")
+    ap.add_argument("--pkl_root", type=str, help="Root directory to auto-discover task pickles (searches for **/*-tf.pkl).")
 
     ap.add_argument("--cols", type=str, default="0,1,6", help="Indices for (x,y,p), e.g. '0,1,6'.")
     ap.add_argument("--batch", type=int, default=32)
     ap.add_argument("--aggregate", action="store_true", help="Average embeddings per subject before plots (tsne/umap).")
-    ap.add_argument("--report_subject_level", action="store_true",
-                    help="Generate the report on subject-level means instead of per-sample.")
+    ap.add_argument("--report_subject_level", action="store_true", help="Generate the report on subject-level means instead of per-sample.")
     ap.add_argument("--tsne", action="store_true", help="Make a t-SNE plot.")
     ap.add_argument("--umap", action="store_true", help="Make a UMAP plot (requires umap-learn).")
-    ap.add_argument("--outdir", type=str, default="./outs_prelbd_tasks",
-                    help="Base output directory (per-task subfolders will be created when using --pkl_root).")
+    ap.add_argument("--outdir", type=str, default="./outs_prelbd_tasks", help="Base output directory (per-task subfolders will be created when using --pkl_root).")
     ap.add_argument("--ckpt", type=str, default=None, help="Optional model checkpoint to load (strict=False).")
     ap.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--cv", type=int, default=5, help="Stratified K-fold for the diagnostic classifier in report.")
+
+    ap.add_argument("--save_embeddings", action="store_true", help="Dump extracted embeddings to disk for downstream classifiers.")
+    ap.add_argument("--emb_format", type=str, default="npz", help="Embeddings format: 'npz' (recommended) or 'csv'.")
+    ap.add_argument("--emb_dir", type=str, default=None, help="Directory to save embeddings. Default: <outdir>/<task>/")
+    ap.add_argument("--aggregate_export", action="store_true", help="If set, also export subject-level mean embeddings.")
+    
+
     args = ap.parse_args()
 
     if args.pkl_root:
@@ -607,6 +664,10 @@ def main():
             raise SystemExit("Provide either --pkl <file> or --pkl_root <dir>.")
         pkl_path = Path(args.pkl); assert pkl_path.exists(), f"Missing: {pkl_path}"
         process_one_pkl(pkl_path, args)
+        # ----- optional: save raw sample-level embeddings -----
+    
+
+
 if __name__ == "__main__":
     # to call python task_wise_diagnosis.py --pkl_root ./data-tf/LBD_CZ_002_raw_tasks --batch 1 --report_subject_level --tsne --umap --outdir ./out_prelbd_task_wise
     main()
