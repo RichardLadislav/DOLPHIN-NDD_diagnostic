@@ -149,7 +149,9 @@ def extract_embeddings(model, loader, device="cpu"):
         y_vec, _, f3 = model(xs, lens)         # y_vec: (B,384), f3: (B,384)
         y_vec = F.normalize(y_vec, dim=1)
         f3    = F.normalize(f3, dim=1)
-        emb   = torch.cat([y_vec, f3], dim=1).cpu().numpy()  # (B,768)
+#        emb   = torch.cat([y_vec, f3], dim=1).cpu().numpy()  # (B,768)
+#        emb   = torch.cat([y_vec], dim=1).cpu().numpy()   (B,384)
+        emb    torch.cat([f3], dim=1).cpu().numpy()   (B,768)
         feats.append(emb); labels.append(ys.numpy()); subjects.extend(subs)
     X = np.vstack(feats)
     y = np.concatenate(labels)
@@ -498,22 +500,73 @@ def make_full_report(
     print(f"  Saved: {outdir}/diagnostic_metrics.(npz|csv|json), dendrogram & heatmap PNGs")
 
 # -----------------------------
+# Embedding file store
+# -----------------------------
+def save_embeddings(X: np.ndarray,
+                    y: np.ndarray,
+                    subs: np.ndarray,
+                    out_path: Path,
+                    fmt: str = "npz",
+                    header_prefix: str = "f"):
+    """
+    Save embeddings for downstream classifiers.
+
+    Args:
+        X: (N, D) embeddings
+        y: (N,) integer labels (0/1)
+        subs: (N,) subject ids (strings)
+        out_path: full path incl. filename (extension ignored; 'fmt' is used)
+        fmt: 'npz' or 'csv'
+        header_prefix: column prefix for CSV feature columns
+    """
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if fmt.lower() == "npz":
+        # Fast, binary – perfect for sklearn: np.load(...); X=..., y=..., subs=...
+        np.savez(out_path.with_suffix(".npz"), X=X, y=y, subs=subs)
+        print(f"[SAVE] Embeddings (NPZ): {out_path.with_suffix('.npz')}")
+        return
+
+    if fmt.lower() == "csv":
+        # Wide CSV: subject,label,f0,...,f{D-1}
+        D = X.shape[1]
+        headers = ["subject", "label"] + [f"{header_prefix}{i}" for i in range(D)]
+        csv_path = out_path.with_suffix(".csv")
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
+            import csv as _csv
+            wr = _csv.writer(f)
+            wr.writerow(headers)
+            for s, yi, row in zip(subs, y, X):
+                wr.writerow([s, int(yi)] + [float(v) for v in row.tolist()])
+        print(f"[SAVE] Embeddings (CSV): {csv_path}")
+        return
+
+    raise ValueError(f"Unsupported fmt: {fmt} (use 'npz' or 'csv')")
+
+# -----------------------------
 # Main
 # -----------------------------
 def main():
+    
     ap = argparse.ArgumentParser(description="DOLPHIN → diagnostic embeddings → t-SNE/UMAP + LR CV")
     ap.add_argument("--pkl", type=str, required=True, help="Path to PRELBD-tf.pkl (joblib or pickle).")
     ap.add_argument("--cols", type=str, default="0,1,6", help="Indices for (x,y,p), e.g. '0,1,6'.")
     ap.add_argument("--batch", type=int, default=32)
     ap.add_argument("--aggregate", action="store_true", help="Average embeddings per subject before plots (tsne/umap).")
-    ap.add_argument("--report_subject_level", action="store_true",
-                    help="Generate the report on subject-level means instead of per-sample.")
+    ap.add_argument("--report_subject_level", action="store_true", help="Generate the report on subject-level means instead of per-sample.")
     ap.add_argument("--tsne", action="store_true", help="Make a t-SNE plot.")
     ap.add_argument("--umap", action="store_true", help="Make a UMAP plot (requires umap-learn).")
     ap.add_argument("--outdir", type=str, default="./outs_prelbd")
     ap.add_argument("--ckpt", type=str, default=None, help="Optional model checkpoint to load (strict=False).")
     ap.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--cv", type=int, default=5, help="Stratified K-fold for the diagnostic classifier in report.")
+    
+    ap.add_argument("--save_embeddings", action="store_true", help="Dump extracted embeddings to disk for downstream classifiers.")
+    ap.add_argument("--emb_format", type=str, default="npz", help="Embeddings format: 'npz' (recommended) or 'csv'.")
+    ap.add_argument("--emb_dir", type=str, default=None, help="Directory to save embeddings. Default: <outdir>/<task>/")
+    ap.add_argument("--aggregate_export", action="store_true", help="If set, also export subject-level mean embeddings.")
+
     args = ap.parse_args()
 
     pkl_path = Path(args.pkl); assert pkl_path.exists(), f"Missing: {pkl_path}"
