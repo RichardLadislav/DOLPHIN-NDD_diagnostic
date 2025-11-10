@@ -74,21 +74,8 @@ def read_svc_keep_cols(path: Path, keep_cols=(0,1,6), encoding="utf-8") -> np.nd
     if not body:
         return np.zeros((0, len(keep_cols)), dtype=np.float32)
 
-    cands = [",", ";", "\t", " "]
     def split_with(d, s): return [tok for tok in s.split(d) if tok != ""]
 
-    # choose delimiter by stability
-    #delim = None
-    #best_score = -1e9
-    #for d in cands:
-        #counts = []
-        #for s in body[:25]:
-            #toks = split_with(d, s)
-            #counts.append(len(toks))
-        #if counts:
-            #score = -np.std(counts)
-            #if score > best_score:
-                #best_score = score; delim = d
     delim = " "
     rows: List[List[float]] = []
     for s in body:
