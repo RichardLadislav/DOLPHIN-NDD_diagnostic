@@ -161,6 +161,8 @@ output/
 *pkl
 *wav
 *zip
+*png
+
 handcrafted_features_LBD_CZ_002.csv
 ## Jupyter notebooks
 hf_analysis_refactor - kopie.ipynb
@@ -189,6 +191,10 @@ out_prelbd_task_wise/
 results_summary.md
 results_summary_extended.md
 prelbd_results_summary.md
+pre_lbd_summary.md
+
+## pdf files
+pre_lbd_summary.pdf
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
