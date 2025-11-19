@@ -162,9 +162,11 @@ output/
 *wav
 *zip
 handcrafted_features_LBD_CZ_002.csv
+## Jupyter notebooks
 hf_analysis_refactor - kopie.ipynb
-out_prelbd_task_wise/
+results_summary.ipynb
 
+## results folders
 out_prelbd/
 xgb_results/
 xgb_results_bal_acc/
@@ -176,11 +178,17 @@ LBD_CZ_002_dfs/
 xgb_results_handcrafted/
 xgb_results_handcrafted_embedded/
 xgb_mci_lbd_hc/
+xgb_lbd_hc/
 xgb_ad_hc/
 xgb_ad_lbd/
+xgb_results_handcrafted_compensated/
+out_prelbd_task_wise/
 
 
-
+## markdown files
+results_summary.md
+results_summary_extended.md
+prelbd_results_summary.md
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
