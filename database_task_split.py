@@ -79,8 +79,10 @@ def main():
     ap = argparse.ArgumentParser(
         description="Split raw PRELBD .svc data into 13 task-wise raw databases (by copying)."
     )
-    ap.add_argument("--src_root", type=str, required=True, help="Path to raw root (e.g., ./data-raw/LBD_CZ_002)")
-    ap.add_argument("--out_root", type=str, required=True, help="Where to write task-wise raw folders")
+    #ap.add_argument("--src_root", type=str, required=True, help="Path to raw root (e.g., ./data-raw/LBD_CZ_002)")
+    ap.add_argument("--src_root", type=str, default="./data-raw/LBD_CZ_002", help="Path to raw root (e.g., ./data-raw/LBD_CZ_002)")
+    #ap.add_argument("--out_root", type=str, required=True, help="Where to write task-wise raw folders")
+    ap.add_argument("--out_root", type=str, default="./data/LBD_CZ_002_raw_tasks", help="Where to write task-wise raw folders")
     ap.add_argument("--tasks", type=str, default=",".join(DEFAULT_TASKS),
                     help="Comma-separated task list (default = 13 PRELBD tasks)")
     args = ap.parse_args()
