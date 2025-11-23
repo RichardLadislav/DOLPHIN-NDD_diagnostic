@@ -71,7 +71,7 @@ def label_from_key(k: str) -> int:
     k_low = k.lower()
     if k_low.startswith("hc"):
         return 0
-    if k_low.startswith("pre-lbd") or k_low.startswith("pre_lbd") or k_low.startswith("prelbd"):
+    if k_low.startswith("pre-lbd") or k_low.startswith("pre_lbd") or k_low.startswith("prelbd") or k_low.startswith("coben"):
         return 1
     return -1  # unknown -> filtered later
 
@@ -151,7 +151,7 @@ def extract_embeddings(model, loader, device="cpu"):
         f3    = F.normalize(f3, dim=1)
 #        emb   = torch.cat([y_vec, f3], dim=1).cpu().numpy()  # (B,768)
 #        emb   = torch.cat([y_vec], dim=1).cpu().numpy()   (B,384)
-        emb = torch.cat([f3], dim=1).cpu().numpy()   (B,768)
+        emb = torch.cat([f3], dim=1).cpu().numpy()   #(B,768)
         feats.append(emb); labels.append(ys.numpy()); subjects.extend(subs)
     X = np.vstack(feats)
     y = np.concatenate(labels)

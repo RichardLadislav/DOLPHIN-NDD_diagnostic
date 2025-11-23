@@ -72,11 +72,11 @@ def label_from_key(k: str) -> int:
     k_low = k.lower()
     if k_low.startswith("hc"):
         return 0
-    if k_low.startswith("pre-lbd") or k_low.startswith("pre_lbd") or k_low.startswith("prelbd"):
+    if k_low.startswith("pre-lbd") or k_low.startswith("pre_lbd") or k_low.startswith("prelbd") or k_low.startswith("coben-wtablet"):
         return 1
     return -1  # unknown -> filtered later
 
-# -----------------------------
+# -----------------------------     
 # Dataset with diagnostic labels
 # -----------------------------
 class WritingDiagnostic(Dataset):
@@ -631,7 +631,7 @@ def main():
     ap.add_argument("--pkl_root", type=str, help="Root directory to auto-discover task pickles (searches for **/*-tf.pkl).")
 
     ap.add_argument("--cols", type=str, default="0,1,6", help="Indices for (x,y,p), e.g. '0,1,6'.")
-    ap.add_argument("--batch", type=int, default=32)
+    ap.add_argument("--batch", type=int, default=1)
     ap.add_argument("--aggregate", action="store_true", help="Average embeddings per subject before plots (tsne/umap).")
     ap.add_argument("--report_subject_level", action="store_true", help="Generate the report on subject-level means instead of per-sample.")
     ap.add_argument("--tsne", action="store_true", help="Make a t-SNE plot.")
