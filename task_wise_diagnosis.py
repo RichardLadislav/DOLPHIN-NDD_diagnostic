@@ -72,11 +72,11 @@ def label_from_key(k: str) -> int:
     k_low = k.lower()
     if k_low.startswith("hc"):
         return 0
-    if k_low.startswith("pre-lbd") or k_low.startswith("pre_lbd") or k_low.startswith("prelbd"):
+    if k_low.startswith("pre-lbd") or k_low.startswith("pre_lbd") or k_low.startswith("prelbd") or k_low.startswith("coben-wtablet"):
         return 1
     return -1  # unknown -> filtered later
 
-# -----------------------------
+# -----------------------------     
 # Dataset with diagnostic labels
 # -----------------------------
 class WritingDiagnostic(Dataset):
@@ -150,9 +150,9 @@ def extract_embeddings(model, loader, device="cpu"):
         y_vec, _, f3 = model(xs, lens)         # y_vec: (B,384), f3: (B,384)
         y_vec = F.normalize(y_vec, dim=1)
         f3    = F.normalize(f3, dim=1)
-        emb   = torch.cat([y_vec, f3], dim=1).cpu().numpy()  # (B,384)
+     #   emb   = torch.cat([y_vec, f3], dim=1).cpu().numpy()  # (B,384)
         #emb   = torch.cat([f3], dim=1).cpu().numpy()   #(B,384)
-#        emb   = torch.cat([y_vec], dim=1).cpu().numpy()  # (B,768)
+        emb   = torch.cat([y_vec], dim=1).cpu().numpy()  # (B,768)
         feats.append(emb); labels.append(ys.numpy()); subjects.extend(subs)
         #feats.append(y_vec); labels.append(ys.numpy()); subjects.extend(subs)
         #feats.append(f3); labels.append(ys.numpy()); subjects.extend(subs)
@@ -631,7 +631,7 @@ def main():
     ap.add_argument("--pkl_root", type=str, help="Root directory to auto-discover task pickles (searches for **/*-tf.pkl).")
 
     ap.add_argument("--cols", type=str, default="0,1,6", help="Indices for (x,y,p), e.g. '0,1,6'.")
-    ap.add_argument("--batch", type=int, default=32)
+    ap.add_argument("--batch", type=int, default=1)
     ap.add_argument("--aggregate", action="store_true", help="Average embeddings per subject before plots (tsne/umap).")
     ap.add_argument("--report_subject_level", action="store_true", help="Generate the report on subject-level means instead of per-sample.")
     ap.add_argument("--tsne", action="store_true", help="Make a t-SNE plot.")
