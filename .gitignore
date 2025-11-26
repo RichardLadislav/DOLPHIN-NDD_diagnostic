@@ -164,9 +164,11 @@ output/
 *png
 
 handcrafted_features_LBD_CZ_002.csv
+xgb_lbd_hc_loo_9_1_summary.csv
 ## Jupyter notebooks
 hf_analysis_refactor - kopie.ipynb
 results_summary.ipynb
+lbd_vs_hc_loo_9_1_summary.ipynb
 
 ## results folders
 out_prelbd/
@@ -187,7 +189,7 @@ xgb_results_handcrafted_compensated/
 out_prelbd_task_wise/
 outputs_archive/
 LBD_CZ_002_COBEN_dfs/
-
+xgb_lbd_hc_loo_9_1/
 
 
 ## markdown files
