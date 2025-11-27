@@ -190,6 +190,8 @@ out_prelbd_task_wise/
 outputs_archive/
 LBD_CZ_002_COBEN_dfs/
 xgb_lbd_hc_loo_9_1/
+xgb_ad_hc_loo_9_1/
+xgb_ad_lbd_loo_9_1/
 
 
 ## markdown files
