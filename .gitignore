@@ -163,11 +163,27 @@ output/
 *zip
 *png
 
+## csv files
 handcrafted_features_LBD_CZ_002.csv
+xgb_lbd_hc_loo_9_1_summary.csv
+xgb_ad_hc_loo_9_1_summary.csv
+xgb_ad_lbd_loo_9_1_summary.csv
+xgb_pd_hc_loo_9_1_summary.csv
+xgb_loo_9_15_17_19_summary.csv
+xgb_skf_9_15_17_19_summary.csv
+xgb_loo_1_18_summary.csv
+xgb_skf_1_18_summary.csv
+
 ## Jupyter notebooks
 hf_analysis_refactor - kopie.ipynb
 results_summary.ipynb
+lbd_vs_hc_loo_9_1_summary.ipynb
 
+## Excel files
+summary_9_1_loo.xlsx
+summary_9_1_loo.xlsx
+xgb_loo_9_15_17_19_summary.xlsx
+~$summary_9_1_loo.xlsx
 ## results folders
 out_prelbd/
 xgb_results/
@@ -186,15 +202,30 @@ xgb_ad_lbd/
 xgb_results_handcrafted_compensated/
 out_prelbd_task_wise/
 outputs_archive/
-
-
-
+LBD_CZ_002_COBEN_dfs/
+xgb_lbd_hc_loo_9_1/
+xgb_ad_hc_loo_9_1/
+xgb_ad_lbd_loo_9_1/
+xgb_pd_hc_loo_9_1/
+xgb_lbd_hc_loo_tasks/
+xgb_lbd_hc_skf_tasks/
+xgb_loo_9_15_17_19/
+xgb_task_analysis/
+xgb_results_handcrafted_combined_emb_lbd_hc_skf_task/
+xgb_lbd_hc_skf_tasks_tasks_1_1_18_1_purged/
+xgb_lbd_hc_skf_tasks_tasks_whole_taskset/
+xgb_lbd_hc_skf_tasks_whole_taskset/
+xgb_pd_hc_skf_tasks_whole_taskset/
+xgb_task_analysis_1_18/
+xgb_ad_hc_skf_tasks_whole_taskset/
+xgb_ad_lbd_skf_tasks_whole_taskset/
 ## markdown files
 results_summary.md
 results_summary_extended.md
 prelbd_results_summary.md
 pre_lbd_summary.md
 
+~$xgb_loo_9_15_17_19_summary.xlsx
 ## pdf files
 pre_lbd_summary.pdf
 # PyCharm
