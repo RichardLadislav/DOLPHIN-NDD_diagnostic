@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import List
 from tqdm import tqdm
 from joblib import dump as joblib_dump
+import json
 
     
 def preprocess_DCOHE(src_root='./data-raw/DCOH-E'):
@@ -76,6 +77,16 @@ def preprocess_COUCH(src_root='./data-raw/COUCH09',interp=4):
         pickle.dump(writing,f)
         
 # Part where for preprocessing of preLBD database 
+
+def _read_json_keep_cols(path: Path, keep_cols=["x", "y", "pressure"], encoding="utf-8") -> np.ndarray:
+    
+    with path.open("r", encoding=encoding, errors="replace") as f:
+        data = json.load(f)
+    rows = []
+    for entry in data:
+        row = [entry.get(col, 0.0) for col in keep_cols]
+        rows.append(row)
+    return np.asarray(rows, dtype=np.float32)
 
 def _read_svc_keep_cols(path: Path, keep_cols=(0, 1, 6), encoding="utf-8") -> np.ndarray:
     """
@@ -174,7 +185,7 @@ def preprocess_PRELBD(
     writers = sorted([d for d in src.iterdir() if d.is_dir()])
     writing: dict[str, list[np.ndarray]] = {}
 
-    for wdir in tqdm(writers, desc="Preprocessing LBD_CZ_002", unit="writer"):
+    for wdir in tqdm(writers, desc="Preprocessing DYS_CZ_004_raw_tasks", unit="writer"):
         wkey = wdir.name  # use folder name as stable writer id (string)
         samples: list[np.ndarray] = []
         # accept .svc (and optionally .csv/.txt if present)
@@ -198,6 +209,55 @@ def preprocess_PRELBD(
 
     total = sum(len(v) for v in writing.values())
     print(f"[LBD_CZ_002] writers: {len(writing)} | samples: {total} | saved → {out_path}")
+
+def preprocess_DYS(
+    src_root: str = "./data-raw/DYS_CZ_004_raw_tasks",
+    tgt_root: str = "./data/DYS_CZ_004_raw_tasks",
+    interp: int | None = 4,
+    use_joblib: bool = False,
+    keep_cols=["x", "y", "pressure"],
+    min_samples_per_writer: int = 0,
+):
+    """
+    Build a single pickle for DYS:
+      { writer_id(str): [ np.ndarray(T,3)[x,y,p], ... ], ... }
+
+    - Reads .json files under writer subfolders in src_root
+    - Keeps ONLY columns (0,1,6) as (x,y,p)
+    - Applies centernorm_size + optional interpolate_torch
+    - Writes LBD_CZ_002.pkl under tgt_root
+    """
+    src = Path(src_root)
+    tgt = Path(tgt_root)
+    assert src.exists(), f"Missing source root: {src}"
+
+    writers = sorted([d for d in src.iterdir() if d.is_dir()])
+    writing: dict[str, list[np.ndarray]] = {}
+
+    for wdir in tqdm(writers, desc="Preprocessing LBD_CZ_002", unit="writer"):
+        wkey = wdir.name  # use folder name as stable writer id (string)
+        samples: list[np.ndarray] = []
+        # accept .svc (and optionally .csv/.txt if present)
+        files = sorted([p for p in wdir.iterdir() if p.is_file() and p.suffix.lower() in {".svc", ".csv", ".txt", ".json"}])
+
+        for fp in files:
+            arr = _read_json_keep_cols(fp, keep_cols=keep_cols)
+            if arr.shape[0] == 0:
+                continue
+            # normalize + optional interpolation
+            arr = centernorm_size(arr)
+            if interp is not None:
+                arr = interpolate_torch(arr, interp_ratio=interp)
+            samples.append(arr)
+
+        if len(samples) > min_samples_per_writer:
+            writing[wkey] = samples
+
+    out_path = tgt / "DYS_CZ_004.pkl"
+    _save_dict(writing, out_path, use_joblib=use_joblib)
+
+    total = sum(len(v) for v in writing.values())
+    print(f"[DYS_CZ_004] writers: {len(writing)} | samples: {total} | saved → {out_path}")
 
 def preprocess_PRELBD_tas_wise(
     interp: int | None = 4,
@@ -227,6 +287,36 @@ def preprocess_PRELBD_tas_wise(
             './data-raw/LBD_CZ_002_raw_tasks/17_1',
             './data-raw/LBD_CZ_002_raw_tasks/18_1',
             './data-raw/LBD_CZ_002_raw_tasks/19_1'
+              ]
+    for src_root in srcs:
+        preprocess_PRELBD(
+            src_root=src_root,
+            tgt_root=src_root.replace('data-raw','data'),    
+            interp=interp,
+            use_joblib=use_joblib,
+            keep_cols=keep_cols,    
+            min_samples_per_writer=min_samples_per_writer,
+        )
+def preprocess_DYS_task_wise(
+    interp: int | None = 4,
+    use_joblib: bool = False,
+    keep_cols=(0, 1, 6),
+    min_samples_per_writer: int = 0,
+):
+    """
+    Build a single pickle for PRELBD:
+      { writer_id(str): [ np.ndarray(T,3)[x,y,p], ... ], ... }
+
+    - Reads .json files under writer subfolders in src_root
+    - Keeps ONLY columns (0,1,6) as (x,y,p)
+    - Applies centernorm_size + optional interpolate_torch
+    - Writes LBD_CZ_002.pkl under tgt_root
+    """
+    srcs = ['./data-raw/DYS_CZ_004_raw_tasks/Letters',
+            './data-raw/DYS_CZ_004_raw_tasks/Loops',
+            './data-raw/DYS_CZ_004_raw_tasks/Rainbow',
+            './data-raw/DYS_CZ_004_raw_tasks/Saw',
+            './data-raw/DYS_CZ_004_raw_tasks/SentenceCopy'
               ]
     for src_root in srcs:
         preprocess_PRELBD(
@@ -277,6 +367,12 @@ if __name__ == '__main__':
         )
     elif ds == 'prelbd_task_wise':
         preprocess_PRELBD_tas_wise(
+            interp=opt.interp,
+            use_joblib=opt.joblib,
+            keep_cols=(0,1,6)
+        )
+    elif ds == 'dys_task_wise':
+        preprocess_DYS_task_wise(
             interp=opt.interp,
             use_joblib=opt.joblib,
             keep_cols=(0,1,6)
