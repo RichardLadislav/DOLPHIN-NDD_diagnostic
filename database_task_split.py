@@ -103,6 +103,7 @@ def split_into_tasks(src_root: str, out_root: str, tasks: list[str], file_ext: s
 
 
 def main():
+
     ap = argparse.ArgumentParser(
         description="Split raw .svc data into task-wise raw databases (by copying)."
     )
@@ -119,5 +120,6 @@ def main():
 
 
 if __name__ == "__main__":
+    # To run: python database_task_split.py
     main()
 
