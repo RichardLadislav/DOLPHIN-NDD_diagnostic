@@ -8,6 +8,9 @@ from pathlib import Path
 from typing import List
 from tqdm import tqdm
 from joblib import dump as joblib_dump
+from typing import Sequence, Iterable
+import json
+
 
     
 def preprocess_DCOHE(src_root='./data-raw/DCOH-E'):
@@ -76,6 +79,59 @@ def preprocess_COUCH(src_root='./data-raw/COUCH09',interp=4):
         pickle.dump(writing,f)
         
 # Part where for preprocessing of preLBD database 
+
+def _read_json_keep_cols(fp: Path, keep_cols: Sequence[str] = ("x", "y", "pressure")) -> np.ndarray:
+    """
+    Reads your DYS json and returns np.ndarray of shape (T, len(keep_cols)).
+    Expects:
+      obj["data"] is a dict where each kept column is a list/array of length T
+    """
+    try:
+        with open(fp, "r", encoding="utf-8") as f:
+            obj = json.load(f)
+    except Exception:
+        return np.empty((0, len(keep_cols)), dtype=np.float32)
+
+    data = obj.get("data", None)
+    if not isinstance(data, dict):
+        return np.empty((0, len(keep_cols)), dtype=np.float32)
+
+    # verify columns exist
+    for c in keep_cols:
+        if c not in data:
+            return np.empty((0, len(keep_cols)), dtype=np.float32)
+
+    # determine T as min length across selected columns (defensive)
+    lengths = []
+    cols = []
+    for c in keep_cols:
+        v = data.get(c, [])
+        if not isinstance(v, list):
+            # allow numpy arrays etc., but must be iterable
+            try:
+                v = list(v)
+            except Exception:
+                return np.empty((0, len(keep_cols)), dtype=np.float32)
+        cols.append(v)
+        lengths.append(len(v))
+
+    T = min(lengths) if lengths else 0
+    if T <= 0:
+        return np.empty((0, len(keep_cols)), dtype=np.float32)
+
+    # build (T, C)
+    out = np.empty((T, len(keep_cols)), dtype=np.float32)
+    for j, v in enumerate(cols):
+        try:
+            out[:, j] = np.asarray(v[:T], dtype=np.float32)
+        except Exception:
+            return np.empty((0, len(keep_cols)), dtype=np.float32)
+
+    # drop rows with NaN/Inf (optional but usually sensible)
+    mask = np.isfinite(out).all(axis=1)
+    out = out[mask]
+
+    return out
 
 def _read_svc_keep_cols(path: Path, keep_cols=(0, 1, 6), encoding="utf-8") -> np.ndarray:
     """
@@ -174,7 +230,7 @@ def preprocess_PRELBD(
     writers = sorted([d for d in src.iterdir() if d.is_dir()])
     writing: dict[str, list[np.ndarray]] = {}
 
-    for wdir in tqdm(writers, desc="Preprocessing LBD_CZ_002", unit="writer"):
+    for wdir in tqdm(writers, desc="Preprocessing DYS_CZ_004_raw_tasks", unit="writer"):
         wkey = wdir.name  # use folder name as stable writer id (string)
         samples: list[np.ndarray] = []
         # accept .svc (and optionally .csv/.txt if present)
@@ -199,7 +255,108 @@ def preprocess_PRELBD(
     total = sum(len(v) for v in writing.values())
     print(f"[LBD_CZ_002] writers: {len(writing)} | samples: {total} | saved → {out_path}")
 
-def preprocess_PRELBD_tas_wise(
+def preprocess_DYS(
+    src_root: str = "./data-raw/DYS_CZ_004_raw_tasks",
+    tgt_root: str = "./data/DYS_CZ_004_raw_tasks",
+    interp: int | None = 4,
+    use_joblib: bool = False,
+    keep_cols: Sequence[str] = ("x", "y", "pressure"),
+    min_samples_per_writer: int = 0,
+    out_name: str = "DYS_CZ_004.pkl",
+):
+    """
+    Builds a single pickle:
+      { writer_id(str): [ np.ndarray(T,3)[x,y,p], ... ], ... }
+
+    Assumes src_root contains writer subfolders, each containing JSON samples.
+    """
+    src = Path(src_root)
+    tgt = Path(tgt_root)
+    if not src.exists():
+        raise FileNotFoundError(f"Missing source root: {src}")
+    tgt.mkdir(parents=True, exist_ok=True)
+
+    writers = sorted([d for d in src.iterdir() if d.is_dir()])
+    writing: dict[str, list[np.ndarray]] = {}
+
+    for wdir in tqdm(writers, desc="Preprocessing DYS_CZ_004", unit="writer"):
+        wkey = wdir.name
+        samples: list[np.ndarray] = []
+
+        #files = sorted([p for p in wdir.iterdir() if p.is_file() and p.suffix.lower() == ".json"])
+        files = sorted(wdir.rglob("*.json"))
+        files = sorted([p for p in files if p.is_file() and p.suffix.lower() == ".json"])
+        if wdir == writers[0]:
+            print(f"[DEBUG] Example writer dir: {wdir}")
+            print(f"[DEBUG] JSON files found: {len(files)}")
+            if len(files) > 0:
+                print(f"[DEBUG] First JSON: {files[0]}")
+                import json
+                with open(files[0], "r", encoding="utf-8") as f:
+                    obj = json.load(f)
+                print(f"[DEBUG] top-level keys: {list(obj.keys())}")
+                data = obj.get("data", None)
+                print(f"[DEBUG] type(data): {type(data)}")
+                if isinstance(data, dict):
+                    print(f"[DEBUG] data keys: {list(data.keys())[:20]}")
+                    for k in keep_cols:
+                        v = data.get(k, None)
+                        print(f"[DEBUG] col '{k}': {'MISSING' if v is None else f'len={len(v)} type={type(v)}'}")
+        # --- END DIAGNOSTIC ---
+        for fp in files:
+            arr = _read_json_keep_cols(fp, keep_cols=keep_cols)
+            if arr.shape[0] == 0:
+                continue
+
+            arr = centernorm_size(arr)
+            if interp is not None:
+                arr = interpolate_torch(arr, interp_ratio=interp)
+
+            samples.append(arr)
+
+        if len(samples) > min_samples_per_writer:
+            writing[wkey] = samples
+
+    out_path = tgt / out_name
+    _save_dict(writing, out_path, use_joblib=use_joblib)
+
+    total = sum(len(v) for v in writing.values())
+    print(f"[DYS_CZ_004] writers: {len(writing)} | samples: {total} | saved -> {out_path}")
+
+def preprocess_DYS_task_wise(
+    src_root: str = "./data-raw/DYS_CZ_004_raw_tasks",
+    tgt_root: str = "./data/DYS_CZ_004_raw_tasks",
+    tasks: Sequence[str] = ("Letters", "Loops", "Rainbow", "Saw", "SentenceCopy"),
+    interp: int | None = 4,
+    use_joblib: bool = False,
+    keep_cols: Sequence[str] = ("x", "y", "pressure"),
+    min_samples_per_writer: int = 0,
+):
+    """
+    Builds one pickle per task:
+      ./data/DYS_CZ_004_raw_tasks/<TaskName>/DYS_CZ_004_<TaskName>.pkl
+
+    Assumes layout:
+      src_root/<TaskName>/<WriterID>/*.json
+    """
+    src_base = Path(src_root)
+    tgt_base = Path(tgt_root)
+
+    for task in tasks:
+        task_src = src_base / task
+        task_tgt = tgt_base / task
+
+        preprocess_DYS(
+            src_root=str(task_src),
+            tgt_root=str(task_tgt),
+            interp=interp,
+            use_joblib=use_joblib,
+            keep_cols=keep_cols,
+            min_samples_per_writer=min_samples_per_writer,
+            out_name=f"DYS_CZ_004.pkl",
+            #out_name=f"DYS_CZ_004_{task}.pkl",
+        )
+def preprocess_PRELBD_task_wise(
     interp: int | None = 4,
     use_joblib: bool = False,
     keep_cols=(0, 1, 6),
@@ -236,7 +393,7 @@ def preprocess_PRELBD_tas_wise(
             use_joblib=use_joblib,
             keep_cols=keep_cols,    
             min_samples_per_writer=min_samples_per_writer,
-        )
+        )        
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -276,10 +433,16 @@ if __name__ == '__main__':
             keep_cols=(0,1,6)
         )
     elif ds == 'prelbd_task_wise':
-        preprocess_PRELBD_tas_wise(
+        preprocess_PRELBD_task_wise(
             interp=opt.interp,
             use_joblib=opt.joblib,
             keep_cols=(0,1,6)
+        )
+    elif ds == 'dys_task_wise':
+        preprocess_DYS_task_wise(
+            interp=opt.interp,
+            use_joblib=opt.joblib,
+            keep_cols=["x","y","pressure"]
         )
     else:
         raise ValueError(f"Unknown dataset: {ds}")

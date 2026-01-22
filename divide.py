@@ -244,7 +244,7 @@ def _robust_load_pkl(path):
             return pickle.load(f, encoding="iso-8859-1")
 
 @clock
-def extract_and_store_PRELBD(src_path="./data/LBD_CZ_002/LBD_CZ_002.pkl",
+def extract_and_store_DATBASE(src_path="./data/LBD_CZ_002/LBD_CZ_002.pkl",
                              tgt_path="./data/LBD_CZ_002/LBD_CZ_002-tf.pkl",
                              compress=("lz4", 3),
                              progress=True,
@@ -330,7 +330,7 @@ def extract_and_store_PRELBD(src_path="./data/LBD_CZ_002/LBD_CZ_002.pkl",
         print("[extract_and_store_PRELBD] Completed successfully with no failed writers.")
 
 @clock
-def extract_and_store_PRELBD_prelbd( compress=("lz4", 3),
+def extract_and_store_database_taskwise( compress=("lz4", 3),
                               progress=True,
                               gc_every=50,
                               p_col=None):
@@ -349,6 +349,13 @@ def extract_and_store_PRELBD_prelbd( compress=("lz4", 3),
             './data/LBD_CZ_002_raw_tasks/18_1/LBD_CZ_002.pkl',
             './data/LBD_CZ_002_raw_tasks/19_1/LBD_CZ_002.pkl'
               ]
+    TASK_LIST_PRELBD = [
+        "1_1", "3_1", "3_2", "3_3", "3_4", "3_5", "9_1", "10_1", "15_1", "16_1", "17_1", "18_1", "19_1"
+    ]
+    TASK_LIST_DYS = ["Letters", "Loops", "Rainbow", "Saw", "SentenceCopy"]
+
+    #srcs = [f"./data/LBD_CZ_002_raw_tasks/{task}/LBD_CZ_002.pkl" for task in TASK_LIST_PRELBD]
+    srcs = [f"./data/DYS_CZ_004_raw_tasks/{task}/DYS_CZ_004.pkl" for task in TASK_LIST_DYS]
     for src_path in srcs:
         src = Path(src_path)
         # derive task name from folder, e.g. "3_2"
@@ -360,7 +367,7 @@ def extract_and_store_PRELBD_prelbd( compress=("lz4", 3),
 
         print(f"\n[Task {task_name}] Extracting → {tgt_path}")
 
-        extract_and_store_PRELBD(
+        extract_and_store_DATBASE(
             src_path=str(src),
             tgt_path=str(tgt_path),
             compress=compress,
@@ -402,8 +409,8 @@ def main():
                         help="Output path for LBD_CZ_002 time-functions pickle.")
     parser.add_argument('--p_col', type=int, default=None,
                         help="Pressure column index in LBD_CZ_002pkl if not already at index 2 (e.g., 6).")
-    parser.add_argument('--extract_prelbd_task_wise', action='store_true',
-                        help="Extract time-functions for LBD_CZ_002 tas-wise only (no merging with OLIWER).")
+    parser.add_argument('--extract_and_store_database_taskwise', action='store_true',
+                        help="Extract time-functions for DATABASE tas-wise only (no merging with OLIWER).")
     args = parser.parse_args()
 
     compress = None if args.no_compress else ('lz4', 3)
@@ -420,7 +427,7 @@ def main():
 
     # ---- NEW: PRELBD-only time-function extraction ----
     if args.extract_prelbd:
-        extract_and_store_PRELBD(
+        extract_and_store_DATBASE(
             src_path=args.prelbd_src,
             tgt_path=args.prelbd_tgt,
             compress=compress,
@@ -428,8 +435,8 @@ def main():
             gc_every=args.gc_every,
             p_col=args.p_col  # set to 6 if your PRELBD has p at column 6
         )
-    if  args.extract_prelbd_task_wise:
-        extract_and_store_PRELBD_prelbd(
+    if  args.extract_and_store_database_taskwise:
+        extract_and_store_database_taskwise(
             compress=compress,
             progress=True,
             gc_every=args.gc_every,

@@ -242,6 +242,8 @@ xgb_pd_hc_skf_tasks_whole_taskset_(12_1_26_cleaned_CV)/
 xgb_pd_hc_skf_tasks_whole_taskset_(8_1_26_cleaned_train_test)/
 xgb_results_handcrafted_temporal_emb_lbd_hc_compensated_loo_tasks_whole_taskset_(8_1_26_cleaned_train_test)/
 xgb_skf_CV/
+DYS_CZ_004_dfs/
+out_dys_task_wise/
 xgb_skf_CV_summary.csv
 xgb_skf_CV_summary.xlsm
 xgb_skf_cleaned_dataset/

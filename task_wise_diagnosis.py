@@ -70,11 +70,11 @@ def to_serializable(obj):
 
 def label_from_key(k: str) -> int:
     k_low = k.lower()
-    if k_low.startswith("hc"):
+    if k_low.startswith("1"):
         return 0
-    if k_low.startswith("pre-lbd") or k_low.startswith("pre_lbd") or k_low.startswith("prelbd") or k_low.startswith("coben-wtablet"):
+    if k_low.startswith("2") or k_low.startswith("pre_lbd") or k_low.startswith("prelbd") or k_low.startswith("coben-wtablet"):
         return 1
-    return -1  # unknown -> filtered later
+    return 1  # unknown -> filtered later
 
 # -----------------------------     
 # Dataset with diagnostic labels
@@ -150,9 +150,9 @@ def extract_embeddings(model, loader, device="cpu"):
         y_vec, _, f3 = model(xs, lens)         # y_vec: (B,384), f3: (B,384)
         y_vec = F.normalize(y_vec, dim=1)
         f3    = F.normalize(f3, dim=1)
-     #   emb   = torch.cat([y_vec, f3], dim=1).cpu().numpy()  # (B,384)
+        emb   = torch.cat([y_vec, f3], dim=1).cpu().numpy()  # (B,384)
         #emb   = torch.cat([f3], dim=1).cpu().numpy()   #(B,384)
-        emb   = torch.cat([y_vec], dim=1).cpu().numpy()  # (B,768)
+        #emb   = torch.cat([y_vec], dim=1).cpu().numpy()  # (B,768)
         feats.append(emb); labels.append(ys.numpy()); subjects.extend(subs)
         #feats.append(y_vec); labels.append(ys.numpy()); subjects.extend(subs)
         #feats.append(f3); labels.append(ys.numpy()); subjects.extend(subs)
@@ -670,4 +670,5 @@ def main():
 
 if __name__ == "__main__":
     # to call python task_wise_diagnosis.py --pkl_root ./data-tf/LBD_CZ_002_raw_tasks --batch 1 --report_subject_level --tsne --umap --outdir ./out_prelbd_task_wise
+    # to call python task_wise_diagnosis.py --pkl_root ./data-tf/DYS_CZ_004_raw_tasks --batch 1 --report_subject_level --tsne --umap --outdir ./out_dys_task_wise
     main()
